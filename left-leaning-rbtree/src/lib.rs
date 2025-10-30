@@ -12,7 +12,7 @@ impl Default for Rbtree {
 }
 
 impl Rbtree {
-    pub fn insert(&mut self, key: u64) -> bool {
+    pub fn insert(&mut self, key: i64) -> bool {
         unsafe {
             let inserted;
             (self.root, inserted) = insert_impl(self.root, key);
@@ -21,7 +21,7 @@ impl Rbtree {
         }
     }
 
-    pub fn remove(&mut self, key: u64) -> bool {
+    pub fn remove(&mut self, key: i64) -> bool {
         unsafe {
             let mut removed = null_mut();
             if !self.root.is_null() {
@@ -55,11 +55,11 @@ unsafe fn color(node: *const Node) -> Color {
 pub struct Node {
     left: *mut Self,
     right: *mut Self,
-    key: u64,
+    key: i64,
     color: Color,
 }
 
-unsafe fn insert_impl(root: *mut Node, key: u64) -> (*mut Node, bool) {
+unsafe fn insert_impl(root: *mut Node, key: i64) -> (*mut Node, bool) {
     let Some(root) = root.as_mut() else {
         return (
             Box::leak(Box::new(Node {
@@ -80,7 +80,7 @@ unsafe fn insert_impl(root: *mut Node, key: u64) -> (*mut Node, bool) {
     (fix_up(root), inserted)
 }
 
-unsafe fn remove_impl(mut root: &mut Node, key: u64) -> (*mut Node, *mut Node) {
+unsafe fn remove_impl(mut root: &mut Node, key: i64) -> (*mut Node, *mut Node) {
     let mut removed = null_mut();
     match root.key.cmp(&key) {
         Ordering::Greater => {
