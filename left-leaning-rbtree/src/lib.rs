@@ -1,7 +1,6 @@
 use std::{cmp::Ordering, ptr::null_mut};
 use Color::{Black, Red};
 
-#[allow(dead_code)]
 pub struct Rbtree {
     root: *mut Node,
 }
@@ -43,7 +42,7 @@ unsafe fn color(node: *const Node) -> Color {
     }
 }
 
-struct Node {
+pub struct Node {
     left: *mut Self,
     right: *mut Self,
     key: u64,
