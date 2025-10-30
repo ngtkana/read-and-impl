@@ -5,6 +5,12 @@ pub struct Rbtree {
     root: *mut Node,
 }
 
+impl Default for Rbtree {
+    fn default() -> Self {
+        Self { root: null_mut() }
+    }
+}
+
 impl Rbtree {
     pub fn insert(&mut self, key: u64) -> bool {
         unsafe {
@@ -187,12 +193,11 @@ unsafe fn join_two_nodes(root: &mut Node) {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use super::*;
     use rand::{rngs::StdRng, Rng, SeedableRng};
+    use std::collections::HashSet;
 
-    unsafe fn dump(root: *const Node) -> String {
+    fn dump(root: *const Node) -> String {
         unsafe fn dump_impl(root: *const Node, out: &mut String) {
             if let Some(root) = root.as_ref() {
                 use std::fmt::Write as _;
@@ -213,7 +218,7 @@ mod tests {
             }
         }
         let mut out = String::new();
-        dump_impl(root, &mut out);
+        unsafe { dump_impl(root, &mut out) };
         out
     }
 
@@ -242,7 +247,7 @@ mod tests {
             let q = 100;
             let insert_ratio = rng.random_range(0.0..=1.0);
             let key_lim = 30;
-            let mut tree = Rbtree { root: null_mut() };
+            let mut tree = Rbtree::default();
             let mut hash_set = HashSet::new();
             for _ in 0..q {
                 let die = rng.random_range(0.0..=1.0);
@@ -258,7 +263,7 @@ mod tests {
                     let expected = hash_set.remove(&key);
                     assert_eq!(result, expected);
                 }
-                eprintln!("tree = {}", unsafe { dump(tree.root) });
+                eprintln!("tree = {}", dump(tree.root));
                 eprintln!();
                 assert!(is_valid(tree.root));
             }
