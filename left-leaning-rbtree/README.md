@@ -33,3 +33,24 @@ Robert Sedgewick 氏による左傾赤黒木の実装のRust 移植
 
 * `insert()`, `remove()` を一定の確率分布で呼んで、その結果を `std::collections::HashSet` と比較する。
 * 呼び出しの後に毎回不変条件をチェックする。
+
+
+## 実行速度検証
+
+### 問題
+
+[ABC 303 C - Dash](https://atcoder.jp/contests/abc303/tasks/abc303_c)
+
+### クエリ回数評価
+
+* `insert()`: $4 \times 10^5$ 回以下
+* `remove()`: $2 \times 10^5$ 回以下
+
+### 実行時間
+
+| ライブラリ | 実行時間 | 提出 |
+| - | - | - |
+| `HashSet` | 26 ms | [https://atcoder.jp/contests/abc303/submissions/70558004]() |
+| `BTreeSet` | 35 ms | [https://atcoder.jp/contests/abc303/submissions/70558088]() |
+| `Rbtree` | 111 ms | [https://atcoder.jp/contests/abc303/submissions/70558077]() |
+
