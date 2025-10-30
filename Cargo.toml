@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "left-leaning-rbtree",
+]
+resolver = "2"
+
+
+[workspace.dependencies]
+rand = "0.9"
