@@ -91,10 +91,10 @@ unsafe fn remove_impl(mut root: &mut Node, key: u64) -> (*mut Node, *mut Node) {
                 root = rotate_right(root);
             }
             let Some(right) = root.right.as_mut() else {
-                return if cmp == Ordering::Equal {
-                    (null_mut(), root)
-                } else {
-                    (root, null_mut())
+                return match cmp {
+                    Ordering::Greater => unreachable!(),
+                    Ordering::Equal => (null_mut(), root),
+                    Ordering::Less => (root, null_mut()),
                 };
             };
             if right.color == Black && color(right.left) == Black {
