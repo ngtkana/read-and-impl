@@ -6,24 +6,28 @@ pub struct Rbtree {
 }
 
 impl Rbtree {
-    pub fn insert(&mut self, key: u64) {
+    pub fn insert(&mut self, key: u64) -> bool {
         unsafe {
-            self.root = insert_impl(self.root, key);
+            let inserted;
+            (self.root, inserted) = insert_impl(self.root, key);
             (*self.root).color = Black;
+            inserted
         }
     }
 
-    pub fn remove(&mut self, key: u64) {
+    pub fn remove(&mut self, key: u64) -> bool {
         unsafe {
+            let mut removed = null_mut();
             if !self.root.is_null() {
                 if color((*self.root).left) == Color::Black {
                     (*self.root).color = Red;
                 }
-                self.root = remove_impl(&mut *self.root, key);
+                (self.root, removed) = remove_impl(&mut *self.root, key);
+                if !self.root.is_null() {
+                    (*self.root).color = Black;
+                }
             }
-            if !self.root.is_null() {
-                (*self.root).color = Black;
-            }
+            !removed.is_null()
         }
     }
 }
@@ -49,33 +53,38 @@ pub struct Node {
     color: Color,
 }
 
-unsafe fn insert_impl(root: *mut Node, key: u64) -> *mut Node {
+unsafe fn insert_impl(root: *mut Node, key: u64) -> (*mut Node, bool) {
     let Some(root) = root.as_mut() else {
-        return Box::leak(Box::new(Node {
-            left: null_mut(),
-            right: null_mut(),
-            key,
-            color: Color::Red,
-        }));
+        return (
+            Box::leak(Box::new(Node {
+                left: null_mut(),
+                right: null_mut(),
+                key,
+                color: Color::Red,
+            })),
+            true,
+        );
     };
+    let inserted;
     match root.key.cmp(&key) {
-        Ordering::Greater => root.left = insert_impl(root.left, key),
-        Ordering::Equal => (),
-        Ordering::Less => root.right = insert_impl(root.right, key),
+        Ordering::Greater => (root.left, inserted) = insert_impl(root.left, key),
+        Ordering::Equal => return (root, false),
+        Ordering::Less => (root.right, inserted) = insert_impl(root.right, key),
     }
-    fix_up(root)
+    (fix_up(root), inserted)
 }
 
-unsafe fn remove_impl(mut root: &mut Node, key: u64) -> *mut Node {
+unsafe fn remove_impl(mut root: &mut Node, key: u64) -> (*mut Node, *mut Node) {
+    let mut removed = null_mut();
     match root.key.cmp(&key) {
         Ordering::Greater => {
             let Some(left) = root.left.as_mut() else {
-                return root;
+                return (root, null_mut());
             };
             if left.color == Black && color(left.left) == Black {
                 root = move_red_left(root);
             }
-            root.left = remove_impl(&mut *root.left, key);
+            (root.left, removed) = remove_impl(&mut *root.left, key);
         }
         cmp @ (Ordering::Equal | Ordering::Less) => {
             if color(root.left) == Red {
@@ -83,25 +92,23 @@ unsafe fn remove_impl(mut root: &mut Node, key: u64) -> *mut Node {
             }
             let Some(right) = root.right.as_mut() else {
                 return if cmp == Ordering::Equal {
-                    let _ = Box::from_raw(root);
-                    null_mut()
+                    (null_mut(), root)
                 } else {
-                    root
+                    (root, null_mut())
                 };
             };
             if right.color == Black && color(right.left) == Black {
                 root = move_red_right(root);
             }
             if root.key == key {
-                let (handle, removed) = remove_min(&mut *root.right);
-                root.key = removed;
-                root.right = handle;
+                (root.right, removed) = remove_min(&mut *root.right);
+                root.key = (*removed).key;
             } else if !root.right.is_null() {
-                root.right = remove_impl(&mut *root.right, key);
+                (root.right, removed) = remove_impl(&mut *root.right, key);
             }
         }
     }
-    fix_up(root)
+    (fix_up(root), removed)
 }
 
 unsafe fn move_red_left(mut root: &mut Node) -> &mut Node {
@@ -136,10 +143,9 @@ unsafe fn fix_up(mut root: &mut Node) -> &mut Node {
     root
 }
 
-unsafe fn remove_min(mut root: &mut Node) -> (*mut Node, u64) {
+unsafe fn remove_min(mut root: &mut Node) -> (*mut Node, *mut Node) {
     if root.left.is_null() {
-        let removed = Box::from_raw(root).key;
-        return (null_mut(), removed);
+        return (null_mut(), root);
     }
     if color(root.left) == Black && color((*root.left).left) == Black {
         root = move_red_left(root);
@@ -181,6 +187,8 @@ unsafe fn join_two_nodes(root: &mut Node) {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
     use rand::{rngs::StdRng, Rng, SeedableRng};
 
@@ -235,15 +243,20 @@ mod tests {
             let insert_ratio = rng.random_range(0.0..=1.0);
             let key_lim = 30;
             let mut tree = Rbtree { root: null_mut() };
+            let mut hash_set = HashSet::new();
             for _ in 0..q {
                 let die = rng.random_range(0.0..=1.0);
                 let key = rng.random_range(0..key_lim);
                 if die <= insert_ratio {
                     eprintln!("Insert {key}");
-                    tree.insert(key);
+                    let result = tree.insert(key);
+                    let expected = hash_set.insert(key);
+                    assert_eq!(result, expected);
                 } else {
                     eprintln!("Remove {key}");
-                    tree.remove(key);
+                    let result = tree.remove(key);
+                    let expected = hash_set.remove(&key);
+                    assert_eq!(result, expected);
                 }
                 eprintln!("tree = {}", unsafe { dump(tree.root) });
                 eprintln!();
