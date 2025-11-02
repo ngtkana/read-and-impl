@@ -1,7 +1,4 @@
-use std::{
-    cmp::Ordering::{self, *},
-    ptr::null_mut,
-};
+use std::{cmp::Ordering, ptr::null_mut};
 use Color::{Black, Red};
 
 pub struct Rbtree {
@@ -56,10 +53,10 @@ unsafe fn insert_recurse(x: *mut Node, key: i64) -> *mut Node {
             color: Red,
         }));
     };
-    match x.key.cmp(&key) {
-        Greater => x.left = insert_recurse(x.left, key),
-        Equal => return x,
-        Less => x.right = insert_recurse(x.right, key),
+    match key.cmp(&x.key) {
+        Ordering::Less => x.left = insert_recurse(x.left, key),
+        Ordering::Equal => return x,
+        Ordering::Greater => x.right = insert_recurse(x.right, key),
     }
     fixup(x)
 }
@@ -79,8 +76,8 @@ unsafe fn remove(x: *mut Node, key: i64) -> *mut Node {
 }
 
 unsafe fn remove_recurse(mut x: &mut Node, key: i64) -> *mut Node {
-    match x.key.cmp(&key) {
-        Ordering::Greater => {
+    match key.cmp(&x.key) {
+        Ordering::Less => {
             let Some(l) = x.left.as_mut() else {
                 return x;
             };
@@ -89,15 +86,15 @@ unsafe fn remove_recurse(mut x: &mut Node, key: i64) -> *mut Node {
             }
             x.left = remove_recurse(&mut *x.left, key);
         }
-        cmp @ (Ordering::Equal | Ordering::Less) => {
+        Ordering::Equal | Ordering::Greater => {
             if color(x.left) == Red {
                 x = rotate_right(x);
             }
             let Some(r) = x.right.as_mut() else {
-                return match cmp {
-                    Ordering::Greater => unreachable!(),
+                return match key.cmp(&x.key) {
+                    Ordering::Less => unreachable!(),
                     Ordering::Equal => null_mut(),
-                    Ordering::Less => x,
+                    Ordering::Greater => x,
                 };
             };
             if r.color == Black && color(r.left) == Black {
