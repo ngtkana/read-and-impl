@@ -15,13 +15,13 @@ Robert Sedgewick 氏による左傾赤黒木の実装のRust 移植
     * 根が黒、黒高さ平衡
     * 2-3 木版なら、2-node or left-leaning 3-node（本記事ではこちらを実装する）
     * 2-3-4 木版なら、2-node, left-leaning 3-node, or left-leaning 4-node
-* ペーパー中に実装のなかった `fixUp()` 関数は、説明から `insert()` の最後の 3 つの操作を続けたものだと理解した。
+* ペーパー中に実装のなかった $\mathtt{fixUp}$ 関数は、説明から $\mathtt{insert}$ の 3 つの後処理を纏めたものと理解した。
 * 根付近の場合分け。これは上に挙げた文献に完全には書いていなかったので、本実装および解説で補った。
 
 
 ## 実装の方針
 
-* ペーパーの実装をなるべくそのまま写経する。
+* 原文の実装をなるべくそのまま写経する。
 * Rust に書き換える都合上、読みやすさのために少し書き換えるが、なるべく原典との同値性がわかりやすい書き方を心がける。
 
 
@@ -102,7 +102,7 @@ unsafe fn join_two_nodes(root: &mut Node) {
 帰りがけに次の関数 $\mathtt{fixUp}$ を適用していけば、これら全てに対応して修正されていく。
 最後の $\mathtt{splitFourNode}$ (定義省略) は親 B-tree node に赤頂点を 1 つ押し付けるが、これは親 B-tree node 内の $\mathtt{fixUp}$ 呼び出しにより解決する。
 
-一連の$\mathtt{fixUp}$ が終了しても依然、根が赤い
+一連の $\mathtt{fixUp}$ が終了しても依然、根が赤い
 
 ```rust
 unsafe fn fixup(mut x: &mut Node) -> &mut Node {
@@ -161,7 +161,7 @@ unsafe fn insert_recurse(x: *mut Node, key: i64) -> *mut Node {
 - これにより行きたい方向が同一赤頂点になる、もしくは 3-node の黒頂点になればばもう変形しなくて良い
 - 問題は行きたい方向が 2-node の黒頂点のときで、そのときは次の関数 $\mathtt{moveRedLeft}$, $\mathtt{moveRedRight}$ を用いてなんとかする。
 
-この関数はぱっと見で分かりづらいが、要するに隣から赤頂点を奪えるなら奪ってダメなら親から$\mathtt{joinTwoNodes}$ で奪ってくるということ。
+この関数はぱっと見で分かりづらいが、要するに隣から赤頂点を奪えるなら奪ってダメなら親から $\mathtt{joinTwoNodes}$ で奪ってくるということ。
 ここで親からの強奪に成功することは不変条件からわかる。
 
 ```rust
