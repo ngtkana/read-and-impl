@@ -78,9 +78,7 @@ unsafe fn remove(x: *mut Node, key: i64) -> *mut Node {
 unsafe fn remove_recurse(mut x: &mut Node, key: i64) -> *mut Node {
     match key.cmp(&x.key) {
         Ordering::Less => {
-            let Some(l) = x.left.as_mut() else {
-                return x;
-            };
+            let Some(l) = x.left.as_mut() else { return x };
             if l.color == Black && color(l.left) == Black {
                 x = move_red_left(x);
             }
@@ -90,15 +88,16 @@ unsafe fn remove_recurse(mut x: &mut Node, key: i64) -> *mut Node {
             if color(x.left) == Red {
                 x = rotate_right(x);
             }
-            let Some(r) = x.right.as_mut() else {
+            if let Some(r) = x.right.as_mut() {
+                if r.color == Black && color(r.left) == Black {
+                    x = move_red_right(x);
+                }
+            } else {
                 return match key.cmp(&x.key) {
                     Ordering::Less => unreachable!(),
                     Ordering::Equal => null_mut(),
                     Ordering::Greater => x,
                 };
-            };
-            if r.color == Black && color(r.left) == Black {
-                x = move_red_right(x);
             }
             if x.key == key {
                 let removed;
