@@ -54,3 +54,130 @@ Robert Sedgewick 氏による左傾赤黒木の実装のRust 移植
 | `BTreeSet` | 35 ms | [https://atcoder.jp/contests/abc303/submissions/70558088]() |
 | `Rbtree` | 111 ms | [https://atcoder.jp/contests/abc303/submissions/70558077]() |
 
+## 解説
+
+### 用語
+
+- 赤黒木 (red-black tree, rbtree): この記事では 2-node、左傾 3-node のみを許したものを赤黒木と呼ぶ
+- 前赤黒木 (pre-red-black tree, prbtree): 【この記事の独自定義】赤黒木の部分木となりうる木。
+
+なお prbtree であることは、それ自身が rbtree であるか，もしくは 1 つの rbtree を赤頂点で join したものであることと同値である。
+prbtree の根を黒く塗ることで rbtree になることにも注意。
+
+また対応する 2-3 木の node を B-tree node と呼ぶ。
+
+
+### 不変条件
+
+操作の前後で、(2-node, 左傾 3-node のみからなる) rbtree の条件を満たす。
+
+### 回転
+
+B-tree node 内の辺（いわゆる赤い辺）しか回転しないものとし、回転関数の中で色の付け替えもするものとする。
+コードでいうと `x`, `y` が同一の B-tree node に入っている、つまり `y.color == Red` を課していることになる。
+
+```rust
+unsafe fn rotate_left(x: &mut Node) -> &mut Node {
+    let y = &mut *x.right;
+    x.right = y.left;
+    y.left = x;
+    y.color = x.color;
+    x.color = Red;
+    y
+}
+
+unsafe fn rotate_right(x: &mut Node) -> &mut Node {
+    let y = &mut *x.left;
+    x.left = y.right;
+    y.right = x;
+    y.color = x.color;
+    x.color = Red;
+    y
+}
+```
+
+
+### Insert
+
+行きがけには何もせず、葉に頂点を雑に挿入する。
+するともともとの B-tree node の構造と、今挿入した方向により、次の 4 通りの状況がありうる。
+
+| もともと| 追加方向 | 結果 |
+| - | - | - |
+| 2-node | 左 | 左傾 3-node |
+| 2-node | 右 | 右傾 3-node |
+| 左傾 3-node | 左 | 左傾 4-node |
+| 左傾 3-node | 左 | balanced 4-node |
+
+
+帰りがけに次の関数 $\mathtt{fixUp}$ を適用していけば、これら全てに対応して修正されていく。
+最後の $\mathtt{splitFourNode}$ (定義省略) は親 B-tree node に赤頂点を 1 つ押し付けるが、これは親 B-tree node 内の $\mathtt{fixUp}$ 呼び出しにより解決する。
+
+一連の$\mathtt{fixUp}$ が終了しても依然、根が赤い
+
+```rust
+unsafe fn fixup(mut x: &mut Node) -> &mut Node {
+    if color(x.left) == Black && color(x.right) == Red {
+        x = rotate_left(x);
+    }
+    if color(x.left) == Red && color((*x.left).left) == Red {
+        x = rotate_right(x);
+    }
+    if color(x.left) == Red && color(x.right) == Red {
+        split_four_node(x);
+    }
+    x
+}
+```
+
+
+### Remove
+
+行きがけに処理をすることで、次の不変条件を保つ。（4-node は splay していることもあるが、それも含めてここでは lean していると呼んでいる。）
+
+- 現在見ている頂点 $x$ が 3,4-node のいずれかであり、少なくとも $x$ の部分までは $x$ に向かって lean してる
+- 根から $x$ までのパス上の頂点がすべて 2,3,4-node のどれかであり、赤頂点がすべて $x$ に向かって lean している
+
+まず根が 2-node だと不変条件の初期条件を満たさないので、その場合は根を赤く塗り、自分自身を3-node の赤頂点であると信じ込ませる。
+
+再帰中は、次のように次の段階に不変条件を遺伝させる:
+
+- 行きたい方向とは逆が赤頂点ならば行きたい方向に lean しておく
+- これにより行きたい方向が同一赤頂点になる、もしくは 3-node の黒頂点になればばもう変形しなくて良い
+- 問題は行きたい方向が 2-node の黒頂点のときで、そのときは次の関数 $\mathtt{moveRedLeft}$, $\mathtt{moveRedRight}$ を用いてなんとかする。
+
+この関数はぱっと見で分かりづらいが、要するに隣から赤頂点を奪えるなら奪ってダメなら親から$\mathtt{joinTwoNodes}$ で奪ってくるということ。
+ここで親からの強奪に成功することは不変条件からわかる。
+
+```rust
+unsafe fn move_red_left(mut x: &mut Node) -> &mut Node {
+    join_two_nodes(x);
+    if color((*x.right).left) == Red {
+        x.right = rotate_right(&mut *x.right);
+        x = rotate_left(x);
+        split_four_node(x);
+    }
+    x
+}
+unsafe fn move_red_right(mut x: &mut Node) -> &mut Node {
+    join_two_nodes(x);
+    if color((*x.left).left) == Red {
+        x = rotate_right(x);
+        split_four_node(x);
+    }
+    x
+}
+```
+
+さて、削除対象までたどり着いたあとの話をする。
+まず葉木ではないので中間節点の削除を求められる可能性があるが、その説明は普通の二分探索木と同じなので省略する。
+
+帰りがけの木の修復は、次のパターンに対応できる必要があるが、どのパターンも先述の $\mathtt{fixUp}$ でカバーできる。
+
+- 削除対象の方に lean した 4-node
+- 削除対象の方に lean した 3-node
+- 2-node
+
+ちなみに削除対象の方に lean していない 4-node は直せないことがあるので注意。（$4 ⋅ C_3 = 20$ パターン全部確かめてみよう！）
+
+
