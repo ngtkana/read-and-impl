@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "left-leaning-rbtree",
+    "left-leaning-rbtree", "reversible-left-leaning-rbtree",
 ]
 resolver = "2"
 
