@@ -154,13 +154,11 @@ fn push(mut x: &mut Node) -> &mut Node {
     }
 }
 
-fn merge2(l: *mut Node, r: *mut Node) -> *mut Node {
-    unsafe {
-        let Some(l) = l.as_mut() else { return r };
-        let Some(r) = r.as_mut() else { return l };
-        let (_, c, r) = split3(r, 0);
-        merge3(l, c, r)
-    }
+unsafe fn merge2(l: *mut Node, r: *mut Node) -> *mut Node {
+    let Some(l) = l.as_mut() else { return r };
+    let Some(r) = r.as_mut() else { return l };
+    let (_, c, r) = split3(r, 0);
+    merge3(l, c, r)
 }
 
 unsafe fn merge3(l: *mut Node, c: &mut Node, r: *mut Node) -> &mut Node {

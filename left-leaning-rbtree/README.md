@@ -9,6 +9,11 @@ Robert Sedgewick 氏による左傾赤黒木の実装のRust 移植
 * [トークスライド 1 (78 pages)](https://sedgewick.io/wp-content/uploads/2022/03/2008-09LLRB.pdf): 2-3 木版。Delete は
 * [別のトークスライド 2 (64 pages)](https://pdfs.semanticscholar.org/7cfb/8f56cabd723eb0b2a69f8ad3d0827ebc2f4b.pdf): 2-3-4 木版。Delete のスライドは目次にだけ合って触れられていない。（？）
 
+## 続編
+
+[reversible-left-leaning-rbtree](../../reversible-left-leaning-rbtree/README.md)
+
+
 ## わかったこと・わからなかったこと
 
 * 操作前後に保つべき不変条件は明確。
