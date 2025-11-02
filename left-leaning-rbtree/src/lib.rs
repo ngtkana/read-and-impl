@@ -65,7 +65,7 @@ unsafe fn remove(x: *mut Node, key: i64) -> *mut Node {
     let Some(x) = x.as_mut() else {
         return null_mut();
     };
-    if color(x.left) == Color::Black {
+    if color(x.left) == Black {
         x.color = Red;
     }
     let x = remove_recurse(&mut *x, key);
@@ -126,7 +126,7 @@ unsafe fn remove_min(mut x: &mut Node) -> (*mut Node, *mut Node) {
 
 unsafe fn move_red_left(mut x: &mut Node) -> &mut Node {
     join_two_nodes(x);
-    if color((*x.right).left) == Color::Red {
+    if color((*x.right).left) == Red {
         x.right = rotate_right(&mut *x.right);
         x = rotate_left(x);
         split_four_node(x);

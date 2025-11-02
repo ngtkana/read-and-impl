@@ -76,6 +76,8 @@ prbtree の根を黒く塗ることで rbtree になることにも注意。
 B-tree node 内の辺（いわゆる赤い辺）しか回転しないものとし、回転関数の中で色の付け替えもするものとする。
 コードでいうと `x`, `y` が同一の B-tree node に入っている、つまり `y.color == Red` を課していることになる。
 
+なお本実装では記述のために生ポインタを使用しているが、（親ポインタなしの実装のため）実際には循環参照が存在しないので `Box` で実装することもできる。
+
 ```rust
 unsafe fn rotate_left(x: &mut Node) -> &mut Node {
     let y = &mut *x.right;
@@ -85,7 +87,6 @@ unsafe fn rotate_left(x: &mut Node) -> &mut Node {
     x.color = Red;
     y
 }
-
 unsafe fn rotate_right(x: &mut Node) -> &mut Node {
     let y = &mut *x.left;
     x.left = y.right;
@@ -93,6 +94,23 @@ unsafe fn rotate_right(x: &mut Node) -> &mut Node {
     y.color = x.color;
     x.color = Red;
     y
+}
+```
+
+### 色変更
+
+4-node の分割と 2-node 同士の併合を関数化しておく。
+
+```rust
+unsafe fn split_four_node(root: &mut Node) {
+    root.color = Red;
+    (*root.left).color = Black;
+    (*root.right).color = Black;
+}
+unsafe fn join_two_nodes(root: &mut Node) {
+    root.color = Black;
+    (*root.left).color = Red;
+    (*root.right).color = Red;
 }
 ```
 
@@ -117,7 +135,7 @@ unsafe fn rotate_right(x: &mut Node) -> &mut Node {
 
 ```rust
 unsafe fn fixup(mut x: &mut Node) -> &mut Node {
-    if color(x.left) == Black && color(x.right) == Red {
+    if color(x.right) == Red {
         x = rotate_left(x);
     }
     if color(x.left) == Red && color((*x.left).left) == Red {
@@ -127,6 +145,32 @@ unsafe fn fixup(mut x: &mut Node) -> &mut Node {
         split_four_node(x);
     }
     x
+}
+```
+
+全体的には次のようになる。キーが重複している場合は挿入しない
+
+```rust
+unsafe fn insert(mut x: *mut Node, key: i64) -> *mut Node {
+    x = insert_recurse(x, key);
+    (*x).color = Black;
+    x
+}
+unsafe fn insert_recurse(x: *mut Node, key: i64) -> *mut Node {
+    let Some(x) = x.as_mut() else {
+        return Box::leak(Box::new(Node {
+            left: null_mut(),
+            right: null_mut(),
+            key,
+            color: Red,
+        }));
+    };
+    match key.cmp(&x.key) {
+        Ordering::Less => x.left = insert_recurse(x.left, key),
+        Ordering::Equal => return x,
+        Ordering::Greater => x.right = insert_recurse(x.right, key),
+    }
+    fixup(x)
 }
 ```
 
@@ -180,4 +224,66 @@ unsafe fn move_red_right(mut x: &mut Node) -> &mut Node {
 
 ちなみに削除対象の方に lean していない 4-node は直せないことがあるので注意。（$4 ⋅ C_3 = 20$ パターン全部確かめてみよう！）
 
+```rust
+unsafe fn remove(x: *mut Node, key: i64) -> *mut Node {
+    let Some(x) = x.as_mut() else {
+        return null_mut();
+    };
+    if color(x.left) == Black {
+        x.color = Red;
+    }
+    let x = remove_recurse(&mut *x, key);
+    if let Some(x) = x.as_mut() {
+        x.color = Black;
+    }
+    x
+}
+unsafe fn remove_recurse(mut x: &mut Node, key: i64) -> *mut Node {
+    match key.cmp(&x.key) {
+        Ordering::Less => {
+            let Some(l) = x.left.as_mut() else {
+                return x;
+            };
+            if l.color == Black && color(l.left) == Black {
+                x = move_red_left(x);
+            }
+            x.left = remove_recurse(&mut *x.left, key);
+        }
+        Ordering::Equal | Ordering::Greater => {
+            if color(x.left) == Red {
+                x = rotate_right(x);
+            }
+            let Some(r) = x.right.as_mut() else {
+                return match key.cmp(&x.key) {
+                    Ordering::Less => unreachable!(),
+                    Ordering::Equal => null_mut(),
+                    Ordering::Greater => x,
+                };
+            };
+            if r.color == Black && color(r.left) == Black {
+                x = move_red_right(x);
+            }
+            if x.key == key {
+                let removed;
+                (x.right, removed) = remove_min(&mut *x.right);
+                x.key = (*removed).key;
+            } else if !x.right.is_null() {
+                x.right = remove_recurse(&mut *x.right, key);
+            }
+        }
+    }
+    fixup(x)
+}
+unsafe fn remove_min(mut x: &mut Node) -> (*mut Node, *mut Node) {
+    if x.left.is_null() {
+        return (null_mut(), x);
+    }
+    if color(x.left) == Black && color((*x.left).left) == Black {
+        x = move_red_left(x);
+    }
+    let removed;
+    (x.left, removed) = remove_min(&mut *x.left);
+    (fixup(x), removed)
+}
+```
 
