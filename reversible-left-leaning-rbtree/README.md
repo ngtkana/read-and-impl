@@ -137,7 +137,7 @@ unsafe fn split2(x: *mut Node, index: usize) -> (*mut Node, *mut Node) {
 
 ## insert/remove
 
-前作ですでに実装済みだが、$\mathtt{merge}$, $\mathtt{split}$ を用いて実装し直すとより簡単になる。
+前作ですでに実装済みだが、 $\mathtt{merge}$, $\mathtt{split}$ を用いて実装し直すとより簡単になる。
 
 
 ## sum, affine など
@@ -153,7 +153,7 @@ $\mathtt{merge}$, $\mathtt{split}$ を用いると全体適用に帰着するの
 
 そこで本記事では、3-node の黒頂点を $\mathtt{push}$ する前に、その赤い子を $\mathtt{push}$ し、右回転しておくことで対処することとする。
 これにより `push` 関数のシグニチャを `&mut Node` ではなく `&mut Node -> &mut Node` にする必要がある。
-
+        
 
 ```rust
 fn push(mut x: &mut Node) -> &mut Node {
