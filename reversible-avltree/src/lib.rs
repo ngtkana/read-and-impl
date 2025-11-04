@@ -31,6 +31,7 @@ impl AvlTree {
                 sum: value,
                 len: 1,
                 h: 1,
+                rev: false,
             }));
             self.root = merge3(l, c, r);
         }
@@ -39,6 +40,20 @@ impl AvlTree {
         unsafe {
             let (l, _, r) = split3(&mut *self.root, index);
             self.root = merge2(l, r);
+        }
+    }
+    pub fn reverse(&mut self, start: usize, end: usize) {
+        unsafe {
+            let Some(root) = self.root.as_mut() else {
+                return;
+            };
+            let (lc, r) = split2(root, end);
+            let (l, c) = split2(lc, start);
+            eprintln!("splitted!");
+            if let Some(c) = c.as_mut() {
+                c.rev ^= true;
+            }
+            self.root = merge2(merge2(l, c), r);
         }
     }
 }
@@ -51,9 +66,11 @@ pub struct Node {
     sum: Fp<P>,
     len: usize,
     h: u8,
+    rev: bool,
 }
 impl Node {
     unsafe fn update(&mut self) {
+        assert!(!self.rev);
         self.len = 1;
         self.sum = self.value;
         self.h = 1;
@@ -66,6 +83,19 @@ impl Node {
             self.len += r.len;
             self.sum += r.sum;
             self.h = self.h.max(r.h + 1);
+        }
+    }
+    #[allow(dead_code)]
+    unsafe fn push(&mut self) {
+        if self.rev {
+            self.rev = false;
+            mem::swap(&mut self.left, &mut self.right);
+            if let Some(p) = self.left.as_mut() {
+                p.rev ^= true;
+            }
+            if let Some(p) = self.right.as_mut() {
+                p.rev ^= true;
+            }
         }
     }
 }
@@ -82,6 +112,7 @@ unsafe fn merge2(l: *mut Node, r: *mut Node) -> *mut Node {
 unsafe fn merge3(l: *mut Node, c: &mut Node, r: *mut Node) -> &mut Node {
     match height(l).cmp(&height(r)) {
         Ordering::Less => {
+            (*r).push();
             (*r).left = merge3(l, c, (*r).left);
             balance(&mut *r)
         }
@@ -92,6 +123,7 @@ unsafe fn merge3(l: *mut Node, c: &mut Node, r: *mut Node) -> &mut Node {
             c
         }
         Ordering::Greater => {
+            (*l).push();
             (*l).right = merge3((*l).right, c, r);
             balance(&mut *l)
         }
@@ -107,6 +139,7 @@ unsafe fn split2(x: *mut Node, index: usize) -> (*mut Node, *mut Node) {
 }
 
 unsafe fn split3(x: &mut Node, index: usize) -> (*mut Node, &mut Node, *mut Node) {
+    x.push();
     let llen = x.left.as_ref().map_or(0, |l| l.len);
     let l = mem::replace(&mut x.left, null_mut());
     let r = mem::replace(&mut x.right, null_mut());
@@ -131,7 +164,7 @@ unsafe fn height(x: *const Node) -> u8 {
 }
 
 unsafe fn balance(mut x: &mut Node) -> &mut Node {
-    x.update();
+    x.push();
     match height(x.left) as i8 - height(x.right) as i8 {
         -2 => {
             if height((*x.right).left) > height((*x.right).right) {
@@ -139,7 +172,7 @@ unsafe fn balance(mut x: &mut Node) -> &mut Node {
             }
             x = rotate_left(x);
         }
-        -1..=1 => {}
+        -1..=1 => x.update(),
         2 => {
             if height((*x.left).left) < height((*x.left).right) {
                 x.left = rotate_left(&mut *x.left);
@@ -153,6 +186,8 @@ unsafe fn balance(mut x: &mut Node) -> &mut Node {
 
 unsafe fn rotate_left(x: &mut Node) -> &mut Node {
     let y = &mut *x.right;
+    x.push();
+    y.push();
     x.right = y.left;
     y.left = x;
     x.update();
@@ -162,6 +197,8 @@ unsafe fn rotate_left(x: &mut Node) -> &mut Node {
 
 unsafe fn rotate_right(x: &mut Node) -> &mut Node {
     let y = &mut *x.left;
+    x.push();
+    y.push();
     x.left = y.right;
     y.right = x;
     x.update();
@@ -179,7 +216,14 @@ mod debug {
             if let Some(p) = x.left.as_ref() {
                 display_recur(p, d + 1, s);
             }
-            writeln!(s, "{}▶{}", " ".repeat(d as usize), x.value).unwrap();
+            writeln!(
+                s,
+                "{}▶{}{}",
+                " ".repeat(d as usize),
+                x.value,
+                if x.rev { " [rev]" } else { "" }
+            )
+            .unwrap();
             if let Some(p) = x.right.as_ref() {
                 display_recur(p, d + 1, s);
             }
@@ -195,15 +239,22 @@ mod debug {
     }
 
     pub(crate) fn collect(x: *const Node) -> Vec<Fp<P>> {
-        unsafe fn collect_recur(x: *const Node, out: &mut Vec<Fp<P>>) {
+        unsafe fn collect_recur(x: *const Node, out: &mut Vec<Fp<P>>, mut rev: bool) {
             let Some(x) = x.as_ref() else { return };
-            collect_recur(x.left, out);
-            out.push(x.value);
-            collect_recur(x.right, out);
+            rev ^= x.rev;
+            if rev {
+                collect_recur(x.right, out, rev);
+                out.push(x.value);
+                collect_recur(x.left, out, rev);
+            } else {
+                collect_recur(x.left, out, rev);
+                out.push(x.value);
+                collect_recur(x.right, out, rev);
+            }
         }
         unsafe {
             let mut out = Vec::new();
-            collect_recur(x, &mut out);
+            collect_recur(x, &mut out, false);
             out
         }
     }
@@ -220,6 +271,7 @@ mod tests {
     enum Query {
         Insert { index: usize, value: Fp<P> },
         Remove { index: usize },
+        Reverse { start: usize, end: usize },
     }
 
     #[test]
@@ -233,13 +285,26 @@ mod tests {
             let mut vec = vec![];
             let mut n = 0usize;
             for qid in 0..q {
-                let query = if rng.random_ratio(n as u32, len_max as u32) {
-                    let index = rng.random_range(0..n);
-                    Remove { index }
-                } else {
-                    let index = rng.random_range(0..=n);
-                    let value = Fp::new(rng.random_range(0..value_max));
-                    Insert { index, value }
+                let query = match rng.random_range(0..=3) {
+                    0 => {
+                        let mut start = rng.random_range(0..=n + 1);
+                        let mut end = rng.random_range(0..=n);
+                        if start > end {
+                            (start, end) = (end, start - 1);
+                        }
+                        Reverse { start, end }
+                    }
+                    1..=3 => {
+                        if rng.random_ratio(n as u32, len_max as u32) {
+                            let index = rng.random_range(0..n);
+                            Remove { index }
+                        } else {
+                            let index = rng.random_range(0..=n);
+                            let value = Fp::new(rng.random_range(0..value_max));
+                            Insert { index, value }
+                        }
+                    }
+                    _ => unreachable!(),
                 };
                 eprintln!("Query #{tid}.{qid}: {query:?}");
                 match query {
@@ -253,11 +318,16 @@ mod tests {
                         tree.remove(index);
                         vec.remove(index);
                     }
+                    Reverse { start, end } => {
+                        tree.reverse(start, end);
+                        vec[start..end].reverse();
+                    }
                 }
                 let result = collect(tree.root);
+                eprintln!("structure:\n{}", display(tree.root));
+                eprintln!("n = {n}");
                 eprintln!("vec = {vec:?}");
                 eprintln!("result = {result:?}");
-                eprintln!("structure:\n{}", display(tree.root));
                 assert_eq!(result, vec);
                 eprintln!();
             }
