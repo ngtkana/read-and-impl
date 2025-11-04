@@ -6,6 +6,7 @@ use std::{
 };
 
 use fp::Fp;
+use fp::fp;
 
 #[allow(unused_imports)]
 use crate::debug::display;
@@ -32,6 +33,8 @@ impl AvlTree {
                 len: 1,
                 h: 1,
                 rev: false,
+                c1: Fp::new(1),
+                c0: Fp::new(0),
             }));
             self.root = merge3(l, c, r);
         }
@@ -49,9 +52,22 @@ impl AvlTree {
             };
             let (lc, r) = split2(root, end);
             let (l, c) = split2(lc, start);
-            eprintln!("splitted!");
             if let Some(c) = c.as_mut() {
                 c.rev ^= true;
+            }
+            self.root = merge2(merge2(l, c), r);
+        }
+    }
+    pub fn affine(&mut self, start: usize, end: usize, c1: Fp<P>, c0: Fp<P>) {
+        unsafe {
+            let Some(root) = self.root.as_mut() else {
+                return;
+            };
+            let (lc, r) = split2(root, end);
+            let (l, c) = split2(lc, start);
+            if let Some(c) = c.as_mut() {
+                c.value = c1 * c.value + c0;
+                (c.c1, c.c0) = (c1 * c.c1, c1 * c.c0 + c0);
             }
             self.root = merge2(merge2(l, c), r);
         }
@@ -67,6 +83,8 @@ pub struct Node {
     len: usize,
     h: u8,
     rev: bool,
+    c1: Fp<P>,
+    c0: Fp<P>,
 }
 impl Node {
     unsafe fn update(&mut self) {
@@ -96,6 +114,17 @@ impl Node {
             if let Some(p) = self.right.as_mut() {
                 p.rev ^= true;
             }
+        }
+        if (self.c1, self.c0) != (fp!(1), fp!(0)) {
+            if let Some(p) = self.left.as_mut() {
+                p.value = self.c1 * p.value + self.c0;
+                (p.c1, p.c0) = (self.c1 * p.c1, self.c1 * p.c0 + self.c0);
+            }
+            if let Some(p) = self.right.as_mut() {
+                p.value = self.c1 * p.value + self.c0;
+                (p.c1, p.c0) = (self.c1 * p.c1, self.c1 * p.c0 + self.c0);
+            }
+            (self.c1, self.c0) = (fp!(1), fp!(0));
         }
     }
 }
@@ -218,10 +247,12 @@ mod debug {
             }
             writeln!(
                 s,
-                "{}▶{}{}",
-                " ".repeat(d as usize),
-                x.value,
-                if x.rev { " [rev]" } else { "" }
+                "{spaces}▶{value} {{ c1: {c1}, c0: {c0} }} {rev}",
+                spaces = " ".repeat(d as usize),
+                value = x.value,
+                c1 = x.c1,
+                c0 = x.c0,
+                rev = if x.rev { " [rev]" } else { "" }
             )
             .unwrap();
             if let Some(p) = x.right.as_ref() {
@@ -239,22 +270,29 @@ mod debug {
     }
 
     pub(crate) fn collect(x: *const Node) -> Vec<Fp<P>> {
-        unsafe fn collect_recur(x: *const Node, out: &mut Vec<Fp<P>>, mut rev: bool) {
+        unsafe fn collect_recur(
+            x: *const Node,
+            out: &mut Vec<Fp<P>>,
+            mut rev: bool,
+            c1: Fp<P>,
+            c0: Fp<P>,
+        ) {
             let Some(x) = x.as_ref() else { return };
             rev ^= x.rev;
+            let (d1, d0) = (c1 * x.c1, c1 * x.c0 + c0);
             if rev {
-                collect_recur(x.right, out, rev);
-                out.push(x.value);
-                collect_recur(x.left, out, rev);
+                collect_recur(x.right, out, rev, d1, d0);
+                out.push(c1 * x.value + c0);
+                collect_recur(x.left, out, rev, d1, d0);
             } else {
-                collect_recur(x.left, out, rev);
-                out.push(x.value);
-                collect_recur(x.right, out, rev);
+                collect_recur(x.left, out, rev, d1, d0);
+                out.push(c1 * x.value + c0);
+                collect_recur(x.right, out, rev, d1, d0);
             }
         }
         unsafe {
             let mut out = Vec::new();
-            collect_recur(x, &mut out, false);
+            collect_recur(x, &mut out, false, Fp::new(1), Fp::new(0));
             out
         }
     }
@@ -269,9 +307,23 @@ mod tests {
 
     #[derive(Debug)]
     enum Query {
-        Insert { index: usize, value: Fp<P> },
-        Remove { index: usize },
-        Reverse { start: usize, end: usize },
+        Insert {
+            index: usize,
+            value: Fp<P>,
+        },
+        Remove {
+            index: usize,
+        },
+        Reverse {
+            start: usize,
+            end: usize,
+        },
+        Affine {
+            start: usize,
+            end: usize,
+            c1: Fp<P>,
+            c0: Fp<P>,
+        },
     }
 
     #[test]
@@ -280,12 +332,12 @@ mod tests {
         for tid in 0..300 {
             let q = 200;
             let len_max = rng.random_range(5..=100);
-            let value_max = 100;
+            let value_lim = P;
             let mut tree = AvlTree::default();
             let mut vec = vec![];
             let mut n = 0usize;
             for qid in 0..q {
-                let query = match rng.random_range(0..=3) {
+                let query = match rng.random_range(0..=4) {
                     0 => {
                         let mut start = rng.random_range(0..=n + 1);
                         let mut end = rng.random_range(0..=n);
@@ -294,13 +346,23 @@ mod tests {
                         }
                         Reverse { start, end }
                     }
-                    1..=3 => {
+                    1 => {
+                        let mut start = rng.random_range(0..=n + 1);
+                        let mut end = rng.random_range(0..=n);
+                        if start > end {
+                            (start, end) = (end, start - 1);
+                        }
+                        let c1 = Fp::new(rng.random_range(0..value_lim));
+                        let c0 = Fp::new(rng.random_range(0..value_lim));
+                        Affine { start, end, c1, c0 }
+                    }
+                    2..=4 => {
                         if rng.random_ratio(n as u32, len_max as u32) {
                             let index = rng.random_range(0..n);
                             Remove { index }
                         } else {
                             let index = rng.random_range(0..=n);
-                            let value = Fp::new(rng.random_range(0..value_max));
+                            let value = Fp::new(rng.random_range(0..value_lim));
                             Insert { index, value }
                         }
                     }
@@ -321,6 +383,12 @@ mod tests {
                     Reverse { start, end } => {
                         tree.reverse(start, end);
                         vec[start..end].reverse();
+                    }
+                    Affine { start, end, c1, c0 } => {
+                        tree.affine(start, end, c1, c0);
+                        for x in &mut vec[start..end] {
+                            *x = *x * c1 + c0;
+                        }
                     }
                 }
                 let result = collect(tree.root);
