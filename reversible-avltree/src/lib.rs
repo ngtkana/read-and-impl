@@ -8,9 +8,6 @@ use std::{
 use fp::Fp;
 use fp::fp;
 
-#[allow(unused_imports)]
-use crate::debug::display;
-
 const P: u64 = 998_244_353;
 
 pub struct AvlTree {
@@ -67,9 +64,24 @@ impl AvlTree {
             let (l, c) = split2(lc, start);
             if let Some(c) = c.as_mut() {
                 c.value = c1 * c.value + c0;
+                c.sum = c1 * c.sum + c0 * fp!(c.len);
                 (c.c1, c.c0) = (c1 * c.c1, c1 * c.c0 + c0);
             }
             self.root = merge2(merge2(l, c), r);
+        }
+    }
+    pub fn sum(&mut self, start: usize, end: usize) -> Fp<P> {
+        unsafe {
+            let mut sum = fp!(0);
+            if let Some(root) = self.root.as_mut() {
+                let (lc, r) = split2(root, end);
+                let (l, c) = split2(lc, start);
+                if let Some(c) = c.as_mut() {
+                    sum += c.sum;
+                }
+                self.root = merge2(merge2(l, c), r);
+            }
+            sum
         }
     }
 }
@@ -118,10 +130,12 @@ impl Node {
         if (self.c1, self.c0) != (fp!(1), fp!(0)) {
             if let Some(p) = self.left.as_mut() {
                 p.value = self.c1 * p.value + self.c0;
+                p.sum = self.c1 * p.sum + self.c0 * fp!(p.len);
                 (p.c1, p.c0) = (self.c1 * p.c1, self.c1 * p.c0 + self.c0);
             }
             if let Some(p) = self.right.as_mut() {
                 p.value = self.c1 * p.value + self.c0;
+                p.sum = self.c1 * p.sum + self.c0 * fp!(p.len);
                 (p.c1, p.c0) = (self.c1 * p.c1, self.c1 * p.c0 + self.c0);
             }
             (self.c1, self.c0) = (fp!(1), fp!(0));
@@ -247,9 +261,10 @@ mod debug {
             }
             writeln!(
                 s,
-                "{spaces}▶{value} {{ c1: {c1}, c0: {c0} }} {rev}",
+                "{spaces}▶{value} {{ sum: {sum}, c1: {c1}, c0: {c0} }} {rev}",
                 spaces = " ".repeat(d as usize),
                 value = x.value,
+                sum = x.sum,
                 c1 = x.c1,
                 c0 = x.c0,
                 rev = if x.rev { " [rev]" } else { "" }
@@ -301,7 +316,7 @@ mod debug {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::debug::collect;
+    use crate::debug::{collect, display};
     use Query::*;
     use rand::{Rng, SeedableRng, rngs::StdRng};
 
@@ -324,6 +339,10 @@ mod tests {
             c1: Fp<P>,
             c0: Fp<P>,
         },
+        Sum {
+            start: usize,
+            end: usize,
+        },
     }
 
     #[test]
@@ -337,7 +356,7 @@ mod tests {
             let mut vec = vec![];
             let mut n = 0usize;
             for qid in 0..q {
-                let query = match rng.random_range(0..=4) {
+                let query = match rng.random_range(0..=5) {
                     0 => {
                         let mut start = rng.random_range(0..=n + 1);
                         let mut end = rng.random_range(0..=n);
@@ -356,7 +375,15 @@ mod tests {
                         let c0 = Fp::new(rng.random_range(0..value_lim));
                         Affine { start, end, c1, c0 }
                     }
-                    2..=4 => {
+                    2 => {
+                        let mut start = rng.random_range(0..=n + 1);
+                        let mut end = rng.random_range(0..=n);
+                        if start > end {
+                            (start, end) = (end, start - 1);
+                        }
+                        Sum { start, end }
+                    }
+                    3..=5 => {
                         if rng.random_ratio(n as u32, len_max as u32) {
                             let index = rng.random_range(0..n);
                             Remove { index }
@@ -389,6 +416,11 @@ mod tests {
                         for x in &mut vec[start..end] {
                             *x = *x * c1 + c0;
                         }
+                    }
+                    Sum { start, end } => {
+                        let result = tree.sum(start, end);
+                        let expected = vec[start..end].iter().sum::<Fp<_>>();
+                        assert_eq!(result, expected);
                     }
                 }
                 let result = collect(tree.root);
