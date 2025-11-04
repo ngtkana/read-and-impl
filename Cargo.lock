@@ -57,6 +57,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "procon-lg"
+version = "0.1.0"
+source = "git+https://github.com/ngtkana/procon-lg.git#8506edc05459b3b3877d9ffc21c8b14c4f7d20ef"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -104,6 +114,8 @@ dependencies = [
 name = "reversible-avltree"
 version = "0.1.0"
 dependencies = [
+ "fp",
+ "procon-lg",
  "rand",
 ]
 

@@ -8,3 +8,4 @@ resolver = "2"
 [workspace.dependencies]
 rand = "0.9"
 fp = { git = "https://github.com/ngtkana/ac-adapter-rs.git", version = "0.1.0" }
+procon-lg = { git = "https://github.com/ngtkana/procon-lg.git" }
