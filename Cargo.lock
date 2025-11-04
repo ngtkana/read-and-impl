@@ -120,6 +120,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "reversible-avltree-by-box"
+version = "0.1.0"
+dependencies = [
+ "fp",
+ "procon-lg",
+ "rand",
+]
+
+[[package]]
 name = "reversible-left-leaning-rbtree"
 version = "0.1.0"
 dependencies = [
