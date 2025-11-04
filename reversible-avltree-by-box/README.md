@@ -10,9 +10,6 @@
 
 ## 解説
 
-$\mathrm{merge2}$, $\mathrm{split2}$ さえ作ればあとは完全に同じなので、そこまで解説する。
-
-
 ### 回転
 
 所有権の都合上植え替えの際には常に `take` と move を使わないといけないため、更新順に注意。
@@ -28,7 +25,6 @@ fn rotate_left(mut x: Box<Node>) -> Box<Node> {
     y.update();
     y
 }
-
 fn rotate_right(mut x: Box<Node>) -> Box<Node> {
     x.push();
     let mut y = x.left.take().unwrap();
@@ -46,7 +42,6 @@ fn rotate_right(mut x: Box<Node>) -> Box<Node> {
 
 私の Rust 力の問題かもしれないが、rebalance 条件が少し書きづらくなった。
 `ht` は `Option<&Node>` を受け取るようにしたので呼ぶときには `as_deref` が必要。
-
 
 ```rust
 fn balance(mut x: Box<Node>) -> Box<Node> {
@@ -83,7 +78,7 @@ fn balance(mut x: Box<Node>) -> Box<Node> {
 ### merge/split
 
 ほとんど変わらないが若干書きやすい気がしないでもない。
-
+`mem::replace` を使わなくて良くなった点は少し読みやすい気がする。
 
 ```rust
 fn merge2(l: Option<Box<Node>>, mut r: Option<Box<Node>>) -> Option<Box<Node>> {
@@ -91,7 +86,6 @@ fn merge2(l: Option<Box<Node>>, mut r: Option<Box<Node>>) -> Option<Box<Node>> {
     let (_, c, r) = split3(r, 0);
     Some(merge3(l, c, r))
 }
-
 fn merge3(l: Option<Box<Node>>, mut c: Box<Node>, r: Option<Box<Node>>) -> Box<Node> {
     match ht(l.as_deref()).cmp(&ht(r.as_deref())) {
         Ordering::Less => {
@@ -114,7 +108,6 @@ fn merge3(l: Option<Box<Node>>, mut c: Box<Node>, r: Option<Box<Node>>) -> Box<N
         }
     }
 }
-
 fn split2(x: Option<Box<Node>>, index: usize) -> (Option<Box<Node>>, Option<Box<Node>>) {
     if index == 0 {
         return (None, x);
@@ -122,7 +115,6 @@ fn split2(x: Option<Box<Node>>, index: usize) -> (Option<Box<Node>>, Option<Box<
     let (l, c, r) = split3(x.unwrap(), index - 1);
     (Some(merge3(l, c, None)), r)
 }
-
 fn split3(mut x: Box<Node>, index: usize) -> (Option<Box<Node>>, Box<Node>, Option<Box<Node>>) {
     x.push();
     let llen = x.left.as_ref().map_or(0, |l| l.len);
