@@ -144,16 +144,13 @@ impl Node {
 }
 
 unsafe fn merge2(l: *mut Node, r: *mut Node) -> *mut Node {
-    if r.is_null() {
-        l
-    } else {
-        let (_, c, r) = split3(&mut *r, 0);
-        merge3(l, c, r)
-    }
+    let Some(r) = r.as_mut() else { return l };
+    let (_, c, r) = split3(r, 0);
+    merge3(l, c, r)
 }
 
 unsafe fn merge3(l: *mut Node, c: &mut Node, r: *mut Node) -> &mut Node {
-    match height(l).cmp(&height(r)) {
+    match ht(l).cmp(&ht(r)) {
         Ordering::Less => {
             (*r).push();
             (*r).left = merge3(l, c, (*r).left);
@@ -202,23 +199,24 @@ unsafe fn split3(x: &mut Node, index: usize) -> (*mut Node, &mut Node, *mut Node
     }
 }
 
-unsafe fn height(x: *const Node) -> u8 {
+unsafe fn ht(x: *const Node) -> u8 {
     x.as_ref().map_or(0, |x| x.h)
 }
 
 unsafe fn balance(mut x: &mut Node) -> &mut Node {
-    x.push();
-    match height(x.left) as i8 - height(x.right) as i8 {
+    match ht(x.left) as i8 - ht(x.right) as i8 {
         -2 => {
-            if height((*x.right).left) > height((*x.right).right) {
-                x.right = rotate_right(&mut *x.right);
+            if let Some(r) = x.right.as_mut().filter(|r| ht(r.left) < ht(r.right)) {
+                r.push();
+                x.right = rotate_left(r);
             }
             x = rotate_left(x);
         }
         -1..=1 => x.update(),
         2 => {
-            if height((*x.left).left) < height((*x.left).right) {
-                x.left = rotate_left(&mut *x.left);
+            if let Some(l) = x.left.as_mut().filter(|l| ht(l.left) < ht(l.right)) {
+                l.push();
+                x.left = rotate_left(l);
             }
             x = rotate_right(x);
         }
