@@ -322,58 +322,6 @@ unsafe fn rotate_right(x: &mut Node) -> &mut Node {
     y
 }
 
-mod fp {
-    use std::ops::Add;
-    use std::ops::AddAssign;
-    use std::ops::Mul;
-
-    #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-    pub struct Fp<const P: u64> {
-        value: u64,
-    }
-    impl<const P: u64> Fp<P> {
-        pub const fn new(value: u64) -> Self {
-            Self { value: value % P }
-        }
-        pub const fn value(self) -> u64 {
-            self.value
-        }
-    }
-    impl<const P: u64> std::fmt::Debug for Fp<P> {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{}", self.value)
-        }
-    }
-    impl<const P: u64> std::fmt::Display for Fp<P> {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{}", self.value())
-        }
-    }
-    impl<const P: u64> Add for Fp<P> {
-        type Output = Self;
-        fn add(mut self, rhs: Fp<P>) -> Self::Output {
-            self += rhs;
-            self
-        }
-    }
-    impl<const P: u64> AddAssign for Fp<P> {
-        fn add_assign(&mut self, rhs: Self) {
-            self.value += rhs.value;
-            if self.value >= P {
-                self.value -= P;
-            }
-        }
-    }
-    impl<const P: u64> Mul for Fp<P> {
-        type Output = Self;
-        fn mul(self, rhs: Fp<P>) -> Self::Output {
-            Self {
-                value: self.value * rhs.value % P,
-            }
-        }
-    }
-}
-
 #[allow(dead_code)]
 mod debug {
     use super::{Black, Fp, Node, Red, color};

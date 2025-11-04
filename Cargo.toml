@@ -1,9 +1,10 @@
 [workspace]
 members = [
-    "left-leaning-rbtree", "reversible-left-leaning-rbtree",
+    "left-leaning-rbtree", "reversible-avltree", "reversible-left-leaning-rbtree",
 ]
 resolver = "2"
 
 
 [workspace.dependencies]
 rand = "0.9"
+fp = { git = "https://github.com/ngtkana/ac-adapter-rs.git", version = "0.1.0" }
