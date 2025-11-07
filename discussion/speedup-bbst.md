@@ -1,6 +1,4 @@
-# wishlist
-
-## BBST の高速化。
+# BBST の高速化について
 
 - 問題: [Hash Swapping](https://atcoder.jp/contests/soundhound2018-summer-final-open/tasks/soundhound2018_summer_final_e) 
 - 過去の速い提出: [非再帰赤黒木 2478 ms](https://atcoder.jp/contests/soundhound2018-summer-final-open/submissions/47444867)
@@ -16,3 +14,8 @@
 まずは [Reversible AVL Tree (Box 実装)](/reversible-avltree-by-box/README.md) と対応して非再帰版を作り、速度を比較してみたい。
 
 ちなみにライブラリを用いて Dynamic Sequence Range Affine Range Sum に挑戦しても [3135 ms](https://judge.yosupo.jp/submission/327248) と、抽象化前と区別不可能なくらいの違いしか無いため、抽象化のせいではない
+
+
+## 3: 遅延伝播機能の有無
+
+機能を消したバージョンを作って Hash Swapping に提出してみたが、[4138 ms](https://atcoder.jp/contests/soundhound2018-summer-final-open/submissions/70742332) とほぼ変わらなかった。
