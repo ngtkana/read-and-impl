@@ -118,7 +118,6 @@ unsafe fn split2(x: *mut Node, index: usize) -> (*mut Node, *mut Node) {
 }
 
 unsafe fn split3(mut x: &mut Node, mut index: usize) -> (*mut Node, &mut Node, *mut Node) {
-    x.parent = null_mut();
     loop {
         let llen = x.left.as_ref().map_or(0, |x| x.len);
         match index.cmp(&llen) {
@@ -168,8 +167,6 @@ unsafe fn merge2(l: *mut Node, r: *mut Node) -> *mut Node {
 }
 
 unsafe fn merge3(mut l: *mut Node, mut c: &mut Node, mut r: *mut Node) -> &mut Node {
-    c.left = null_mut();
-    c.right = null_mut();
     c.parent = null_mut();
     if let Some(l) = l.as_mut() {
         l.parent = null_mut();
@@ -336,6 +333,30 @@ fn pretty(x: *mut Node) -> String {
     }
 }
 
+#[allow(dead_code)]
+fn validate(x: *const Node) {
+    fn validate_recurse(x: &Node) {
+        unsafe {
+            matches!(ht(x.left) as i8 - ht(x.right) as i8, -1..=1);
+            assert_eq!(x.ht, ht(x.left).max(ht(x.right)) + 1);
+            if let Some(l) = x.left.as_ref() {
+                assert!(ptr::eq(l.parent, x));
+                validate_recurse(l);
+            }
+            if let Some(r) = x.right.as_ref() {
+                assert!(ptr::eq(r.parent, x));
+                validate_recurse(r);
+            }
+        }
+    }
+    unsafe {
+        if let Some(x) = x.as_ref() {
+            assert!(x.parent.is_null());
+            validate_recurse(x);
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -345,29 +366,6 @@ mod test {
     enum Query {
         Insert { index: usize, value: i32 },
         Remove { index: usize },
-    }
-
-    fn validate(tree: &AvlTreeWithParent) {
-        fn validate_recurse(x: &Node) {
-            unsafe {
-                matches!(ht(x.left) as i8 - ht(x.right) as i8, -1..=1);
-                assert_eq!(x.ht, ht(x.left).max(ht(x.right)) + 1);
-                if let Some(l) = x.left.as_ref() {
-                    assert!(ptr::eq(l.parent, x));
-                    validate_recurse(l);
-                }
-                if let Some(r) = x.right.as_ref() {
-                    assert!(ptr::eq(r.parent, x));
-                    validate_recurse(r);
-                }
-            }
-        }
-        unsafe {
-            if let Some(x) = tree.root.as_ref() {
-                assert!(x.parent.is_null());
-                validate_recurse(x);
-            }
-        }
     }
 
     fn collect(tree: &AvlTreeWithParent) -> Vec<i32> {
@@ -399,7 +397,7 @@ mod test {
             let tree: AvlTreeWithParent = vec.iter().copied().collect();
             eprintln!("vec = {vec:?}");
             eprintln!("tree\n{}", pretty(tree.root));
-            validate(&tree);
+            validate(tree.root);
             eprintln!("tree validated!");
             assert_eq!(collect(&tree), vec);
         }
@@ -444,7 +442,7 @@ mod test {
                 }
                 eprintln!("vec = {vec:?}");
                 eprintln!("tree\n{}", pretty(tree.root));
-                validate(&tree);
+                validate(tree.root);
                 eprintln!("tree validated!");
                 assert_eq!(collect(&tree), vec);
                 eprintln!();
