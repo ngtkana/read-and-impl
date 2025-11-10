@@ -385,7 +385,7 @@ mod test {
     }
 
     #[test]
-    fn test_avl_tree_with_parent_from_iter() {
+    fn test_from_iter() {
         let mut rng = StdRng::seed_from_u64(42);
         for tid in 1..=200 {
             eprintln!("==== Case #{tid}");
@@ -404,7 +404,7 @@ mod test {
     }
 
     #[test]
-    fn test_avl_tree_with_parent() {
+    fn test_random() {
         let mut rng = StdRng::seed_from_u64(42);
         for tid in 1..=200 {
             let q = 200;
