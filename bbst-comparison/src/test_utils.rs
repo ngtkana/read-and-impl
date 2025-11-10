@@ -53,6 +53,79 @@ pub trait HasRoot {
     fn root(&self) -> Option<&Self::Node>;
 }
 
+#[allow(clippy::len_without_is_empty)]
+pub trait BenchmarkableTree: FromIterator<i32> {
+    fn len(&self) -> usize;
+    fn height(&self) -> u8;
+    fn insert(&mut self, index: usize, value: i32);
+    fn remove(&mut self, index: usize) -> i32;
+}
+
+pub fn analyze_tree_stats<T: BenchmarkableTree>() {
+    pub const PHI: f64 = 1.618_033_988_749_895_f64;
+
+    let (mut tree, queries) = generate_benchmark_queries::<T>();
+
+    println!("Initial state:");
+    println!("  len={}, height={}", tree.len(), tree.height());
+    println!(
+        "  Theoretical optimal height: ~{:.1}",
+        (tree.len() as f64).log2()
+    );
+    println!();
+
+    let mut min_len = tree.len();
+    let mut max_len = tree.len();
+    let mut min_height = tree.height();
+    let mut max_height = tree.height();
+
+    for (i, &query) in queries.iter().enumerate() {
+        match query {
+            Query::Insert { index, value } => tree.insert(index, value),
+            Query::Remove { index } => {
+                tree.remove(index);
+            }
+        }
+
+        let len = tree.len();
+        let height = tree.height();
+        min_len = min_len.min(len);
+        max_len = max_len.max(len);
+        min_height = min_height.min(height);
+        max_height = max_height.max(height);
+
+        if (i + 1) % 20_000 == 0 {
+            let optimal_height = (len as f64).log2();
+            let limit_height = (len as f64).ln() / PHI.ln();
+            println!(
+                "After {:6} queries: len={:6}, height={:2} (optimal: ~{:.1}, limit: ~{:.1}, ratio: {:.2})",
+                i + 1,
+                len,
+                height,
+                optimal_height,
+                limit_height,
+                height as f64 / optimal_height
+            );
+        }
+    }
+
+    println!();
+    println!("Final state:");
+    println!("  len={}, height={}", tree.len(), tree.height());
+    println!(
+        "  Theoretical optimal height: ~{:.1}",
+        (tree.len() as f64).log2()
+    );
+    println!();
+    println!("Statistics:");
+    println!("  Length range: {min_len} - {max_len}");
+    println!("  Height range: {min_height} - {max_height}");
+    println!(
+        "  Max height / optimal ratio: {:.2}",
+        max_height as f64 / (max_len as f64).log2()
+    );
+}
+
 pub fn collect<T: HasRoot>(tree: &T) -> Vec<i32> {
     fn collect_recurse<N: TreeNode>(node: Option<&N>, out: &mut Vec<i32>) {
         let Some(node) = node else { return };
