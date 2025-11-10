@@ -1,48 +1,16 @@
+use bbst_comparison::avl_tree_by_box::AvlTreeByBox;
 use bbst_comparison::avl_tree_with_parent::AvlTreeWithParent;
+use bbst_comparison::bench_utils::{generate_initial_values, generate_queries, Query};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use rand::{rngs::StdRng, Rng, SeedableRng};
-
-#[derive(Debug, Clone, Copy)]
-enum Query {
-    Insert { index: usize, value: i32 },
-    Remove { index: usize },
-}
-
-fn generate_queries() -> (AvlTreeWithParent, Vec<Query>) {
-    let mut rng = StdRng::seed_from_u64(42);
-    let n_initial = 200_000;
-    let len_max = 200_000;
-    let q = 200_000;
-    let value_lim = 1_000_000_000;
-
-    let initial_values: Vec<i32> = (0..n_initial)
-        .map(|_| rng.random_range(0..value_lim))
-        .collect();
-    let tree: AvlTreeWithParent = initial_values.into_iter().collect();
-
-    let mut n = n_initial;
-    let queries: Vec<Query> = std::iter::repeat_with(|| {
-        if rng.random_ratio(n as u32, len_max) {
-            let index = rng.random_range(0..n);
-            n -= 1;
-            Query::Remove { index }
-        } else {
-            let index = rng.random_range(0..=n);
-            let value = rng.random_range(0..value_lim);
-            n += 1;
-            Query::Insert { index, value }
-        }
-    })
-    .take(q)
-    .collect();
-
-    (tree, queries)
-}
 
 fn bench_avl_tree_operations(c: &mut Criterion) {
-    c.bench_function("avl_tree_insert_remove_200k", |b| {
+    let mut group = c.benchmark_group("avl_tree_comparison");
+
+    group.bench_function("with_parent", |b| {
         b.iter(|| {
-            let (mut tree, queries) = generate_queries();
+            let initial_values = generate_initial_values();
+            let queries = generate_queries();
+            let mut tree: AvlTreeWithParent = initial_values.into_iter().collect();
             for &query in &queries {
                 match query {
                     Query::Insert { index, value } => {
@@ -55,6 +23,26 @@ fn bench_avl_tree_operations(c: &mut Criterion) {
             }
         });
     });
+
+    group.bench_function("by_box", |b| {
+        b.iter(|| {
+            let initial_values = generate_initial_values();
+            let queries = generate_queries();
+            let mut tree: AvlTreeByBox = initial_values.into_iter().collect();
+            for &query in &queries {
+                match query {
+                    Query::Insert { index, value } => {
+                        tree.insert(black_box(index), black_box(value));
+                    }
+                    Query::Remove { index } => {
+                        tree.remove(black_box(index));
+                    }
+                }
+            }
+        });
+    });
+
+    group.finish();
 }
 
 criterion_group!(benches, bench_avl_tree_operations);

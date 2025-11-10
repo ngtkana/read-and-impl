@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 fp.workspace = true
 procon-lg.workspace = true
+rand.workspace = true
 
 [dev-dependencies]
 rand.workspace = true
