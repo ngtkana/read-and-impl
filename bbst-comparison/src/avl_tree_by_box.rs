@@ -276,6 +276,16 @@ impl crate::test_utils::TreeNode for Node {
     }
 }
 
+impl crate::test_utils::Validatable for Node {
+    const HAS_PARENT_POINTER: bool = false;
+
+    fn validate_balance(&self) -> bool {
+        let balance = ht(self.left.as_deref()) as i8 - ht(self.right.as_deref()) as i8;
+        matches!(balance, -1..=1)
+            && self.ht == ht(self.left.as_deref()).max(ht(self.right.as_deref())) + 1
+    }
+}
+
 impl crate::test_utils::HasRoot for AvlTreeByBox {
     type Node = Node;
     fn root(&self) -> Option<&Self::Node> {
@@ -308,7 +318,7 @@ mod test {
             let tree: AvlTreeByBox = vec.iter().copied().collect();
             eprintln!("vec = {vec:?}");
             eprintln!("tree:\n{}", pretty(tree.root.as_deref()));
-            validate(tree.root.as_deref());
+            test_utils::validate(&tree);
             eprintln!("tree validated!");
             assert_eq!(test_utils::collect(&tree), vec);
         }
@@ -353,7 +363,7 @@ mod test {
                 }
                 eprintln!("vec = {vec:?}");
                 eprintln!("tree:\n{}", pretty(tree.root.as_deref()));
-                validate(tree.root.as_deref());
+                test_utils::validate(&tree);
                 eprintln!("tree validated!");
                 assert_eq!(test_utils::collect(&tree), vec);
                 eprintln!();

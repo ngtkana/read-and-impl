@@ -423,6 +423,26 @@ impl crate::test_utils::TreeNode for Node {
     }
 }
 
+impl crate::test_utils::Validatable for Node {
+    const HAS_PARENT_POINTER: bool = true;
+
+    fn validate_balance(&self) -> bool {
+        unsafe {
+            let left_bh = bh(self.left) + u8::from(color(self.left) == Black);
+            let right_bh = bh(self.right) + u8::from(color(self.right) == Black);
+            self.bh == left_bh
+                && self.bh == right_bh
+                && self.len
+                    == self.left.as_ref().map_or(0, |l| l.len)
+                        + 1
+                        + self.right.as_ref().map_or(0, |r| r.len)
+        }
+    }
+    fn parent(&self) -> Option<&Self> {
+        unsafe { self.parent.as_ref() }
+    }
+}
+
 impl crate::test_utils::HasRoot for RbTreeWithParent {
     type Node = Node;
     fn root(&self) -> Option<&Self::Node> {
@@ -455,7 +475,7 @@ mod test {
             let tree: RbTreeWithParent = vec.iter().copied().collect();
             eprintln!("vec = {vec:?}");
             eprintln!("tree\n{}", pretty(tree.root));
-            validate(tree.root);
+            test_utils::validate(&tree);
             eprintln!("tree validated!");
             assert_eq!(test_utils::collect(&tree), vec);
         }
@@ -500,7 +520,7 @@ mod test {
                 }
                 eprintln!("vec = {vec:?}");
                 eprintln!("tree\n{}", pretty(tree.root));
-                validate(tree.root);
+                test_utils::validate(&tree);
                 eprintln!("tree validated!");
                 assert_eq!(test_utils::collect(&tree), vec);
                 eprintln!();

@@ -174,29 +174,21 @@ unsafe fn merge3(mut l: *mut Node, mut c: &mut Node, mut r: *mut Node) -> &mut N
     if let Some(r) = r.as_mut() {
         r.parent = null_mut();
     }
+    let mut is_less = false;
     match ht(l).cmp(&ht(r)) {
         Ordering::Less => {
             let mut p = null_mut();
-            while ht(l) + 1 < ht(r) {
-                p = r;
-                r = (*r).left;
-            }
-            if let Some(p0) = p.as_mut().filter(|p| ht(p.left) > ht(p.right)) {
-                rotate_right(p0);
+            while ht(l) < ht(r) {
                 p = r;
                 r = (*r).left;
             }
             c.parent = p;
+            is_less = true;
         }
         Ordering::Equal => {}
         Ordering::Greater => {
             let mut p = null_mut();
-            while ht(l) > ht(r) + 1 {
-                p = l;
-                l = (*l).right;
-            }
-            if let Some(p0) = p.as_mut().filter(|p| ht(p.left) < ht(p.right)) {
-                rotate_left(p0);
+            while ht(l) > ht(r) {
                 p = l;
                 l = (*l).right;
             }
@@ -212,7 +204,7 @@ unsafe fn merge3(mut l: *mut Node, mut c: &mut Node, mut r: *mut Node) -> &mut N
         r.parent = c;
     }
     if let Some(p) = c.parent.as_mut() {
-        if ptr::eq(p.left, r) {
+        if is_less {
             p.left = c;
         } else {
             p.right = c;
@@ -220,14 +212,33 @@ unsafe fn merge3(mut l: *mut Node, mut c: &mut Node, mut r: *mut Node) -> &mut N
     }
     c.update();
     while let Some(p) = c.parent.as_mut() {
-        p.update();
-        c = p;
+        c = balance(p);
     }
     c
 }
 
 unsafe fn ht(x: *const Node) -> u8 {
     x.as_ref().map_or(0, |x| x.ht)
+}
+
+unsafe fn balance(mut x: &mut Node) -> &mut Node {
+    match ht(x.left) as i8 - ht(x.right) as i8 {
+        -2 => {
+            if let Some(r) = x.right.as_mut().filter(|r| ht(r.left) > ht(r.right)) {
+                x.right = rotate_right(r);
+            }
+            x = rotate_left(x);
+        }
+        -1..=1 => x.update(),
+        2 => {
+            if let Some(l) = x.left.as_mut().filter(|l| ht(l.left) < ht(l.right)) {
+                x.left = rotate_left(l);
+            }
+            x = rotate_right(x);
+        }
+        _ => unreachable!(),
+    }
+    x
 }
 
 unsafe fn rotate_left(x: &mut Node) -> &mut Node {
@@ -248,7 +259,7 @@ unsafe fn rotate_left(x: &mut Node) -> &mut Node {
     y.left = x;
     x.update();
     y.update();
-    x
+    y
 }
 
 unsafe fn rotate_right(x: &mut Node) -> &mut Node {
@@ -269,7 +280,7 @@ unsafe fn rotate_right(x: &mut Node) -> &mut Node {
     y.right = x;
     x.update();
     y.update();
-    x
+    y
 }
 
 #[allow(dead_code)]
@@ -369,6 +380,20 @@ impl crate::test_utils::TreeNode for Node {
     }
 }
 
+impl crate::test_utils::Validatable for Node {
+    const HAS_PARENT_POINTER: bool = true;
+
+    fn validate_balance(&self) -> bool {
+        unsafe {
+            let balance = ht(self.left) as i8 - ht(self.right) as i8;
+            matches!(balance, -1..=1) && self.ht == ht(self.left).max(ht(self.right)) + 1
+        }
+    }
+    fn parent(&self) -> Option<&Self> {
+        unsafe { self.parent.as_ref() }
+    }
+}
+
 impl crate::test_utils::HasRoot for AvlTreeWithParent {
     type Node = Node;
     fn root(&self) -> Option<&Self::Node> {
@@ -401,7 +426,7 @@ mod test {
             let tree: AvlTreeWithParent = vec.iter().copied().collect();
             eprintln!("vec = {vec:?}");
             eprintln!("tree\n{}", pretty(tree.root));
-            validate(tree.root);
+            test_utils::validate(&tree);
             eprintln!("tree validated!");
             assert_eq!(test_utils::collect(&tree), vec);
         }
@@ -446,7 +471,7 @@ mod test {
                 }
                 eprintln!("vec = {vec:?}");
                 eprintln!("tree\n{}", pretty(tree.root));
-                validate(tree.root);
+                test_utils::validate(&tree);
                 eprintln!("tree validated!");
                 assert_eq!(test_utils::collect(&tree), vec);
                 eprintln!();
