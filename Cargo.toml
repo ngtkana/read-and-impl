@@ -1,5 +1,5 @@
 [workspace]
-members = [
+members = ["bbst-comparison",
     "left-leaning-rbtree", "reversible-avltree", "reversible-avltree-by-box", "reversible-left-leaning-rbtree",
 ]
 resolver = "2"

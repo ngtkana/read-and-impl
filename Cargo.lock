@@ -3,6 +3,15 @@
 version = 4
 
 [[package]]
+name = "bbst-comparison"
+version = "0.1.0"
+dependencies = [
+ "fp",
+ "procon-lg",
+ "rand",
+]
+
+[[package]]
 name = "cfg-if"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -59,7 +68,15 @@ dependencies = [
 [[package]]
 name = "procon-lg"
 version = "0.1.0"
-source = "git+https://github.com/ngtkana/procon-lg.git#8506edc05459b3b3877d9ffc21c8b14c4f7d20ef"
+source = "git+https://github.com/ngtkana/procon-lg.git#e11369a826efc40adf67b184a27609b9e5c23b98"
+dependencies = [
+ "procon-lg-macros",
+]
+
+[[package]]
+name = "procon-lg-macros"
+version = "0.1.0"
+source = "git+https://github.com/ngtkana/procon-lg.git#e11369a826efc40adf67b184a27609b9e5c23b98"
 dependencies = [
  "proc-macro2",
  "quote",
