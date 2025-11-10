@@ -296,14 +296,8 @@ impl crate::test_utils::HasRoot for AvlTreeByBox {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils;
+    use crate::test_utils::{self, Query};
     use rand::{rngs::StdRng, Rng, SeedableRng};
-
-    #[derive(Debug, Clone, Copy)]
-    enum Query {
-        Insert { index: usize, value: i32 },
-        Remove { index: usize },
-    }
 
     #[test]
     fn test_from_iter() {
@@ -371,42 +365,11 @@ mod test {
         }
     }
 
-    fn generate_benchmark_queries() -> (AvlTreeByBox, Vec<Query>) {
-        let mut rng = StdRng::seed_from_u64(42);
-        let n_initial = 200_000;
-        let len_max = 200_000;
-        let q = 200_000;
-        let value_lim = 1_000_000_000;
-
-        let initial_values: Vec<i32> = (0..n_initial)
-            .map(|_| rng.random_range(0..value_lim))
-            .collect();
-        let tree: AvlTreeByBox = initial_values.into_iter().collect();
-
-        let mut n = n_initial;
-        let queries: Vec<Query> = std::iter::repeat_with(|| {
-            if rng.random_ratio(n as u32, len_max) {
-                let index = rng.random_range(0..n);
-                n -= 1;
-                Query::Remove { index }
-            } else {
-                let index = rng.random_range(0..=n);
-                let value = rng.random_range(0..value_lim);
-                n += 1;
-                Query::Insert { index, value }
-            }
-        })
-        .take(q)
-        .collect();
-
-        (tree, queries)
-    }
-
     #[test]
     fn analyze_tree_stats() {
         pub const PHI: f64 = 1.618_033_988_749_895_f64;
 
-        let (mut tree, queries) = generate_benchmark_queries();
+        let (mut tree, queries) = test_utils::generate_benchmark_queries::<AvlTreeByBox>();
 
         println!("Initial state:");
         println!("  len={}, height={}", tree.len(), tree.height());

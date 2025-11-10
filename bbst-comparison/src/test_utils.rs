@@ -1,5 +1,47 @@
 use std::ptr;
 
+use rand::{rngs::StdRng, Rng, SeedableRng};
+
+#[derive(Debug, Clone, Copy)]
+pub enum Query {
+    Insert { index: usize, value: i32 },
+    Remove { index: usize },
+}
+
+pub fn generate_benchmark_queries<T>() -> (T, Vec<Query>)
+where
+    T: FromIterator<i32>,
+{
+    let mut rng = StdRng::seed_from_u64(42);
+    let n_initial = 200_000;
+    let len_max = 200_000;
+    let q = 200_000;
+    let value_lim = 1_000_000_000;
+
+    let initial_values: Vec<i32> = (0..n_initial)
+        .map(|_| rng.random_range(0..value_lim))
+        .collect();
+    let tree: T = initial_values.into_iter().collect();
+
+    let mut n = n_initial;
+    let queries: Vec<Query> = std::iter::repeat_with(|| {
+        if rng.random_ratio(n as u32, len_max) {
+            let index = rng.random_range(0..n);
+            n -= 1;
+            Query::Remove { index }
+        } else {
+            let index = rng.random_range(0..=n);
+            let value = rng.random_range(0..value_lim);
+            n += 1;
+            Query::Insert { index, value }
+        }
+    })
+    .take(q)
+    .collect();
+
+    (tree, queries)
+}
+
 pub trait TreeNode {
     fn left(&self) -> Option<&Self>;
     fn right(&self) -> Option<&Self>;
