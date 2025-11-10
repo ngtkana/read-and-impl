@@ -266,14 +266,12 @@ impl crate::test_utils::Validatable for Node {
     }
 }
 
-impl crate::test_utils::HasRoot for AvlTreeByBox {
+impl crate::test_utils::Tree for AvlTreeByBox {
     type Node = Node;
+
     fn root(&self) -> Option<&Self::Node> {
         self.root.as_deref()
     }
-}
-
-impl crate::test_utils::BenchmarkableTree for AvlTreeByBox {
     fn len(&self) -> usize {
         self.len()
     }

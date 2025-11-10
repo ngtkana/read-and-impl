@@ -268,10 +268,23 @@ impl crate::test_utils::Validatable for Node {
     }
 }
 
-impl crate::test_utils::HasRoot for UnbalancedTreeWithParent {
+impl crate::test_utils::Tree for UnbalancedTreeWithParent {
     type Node = Node;
+
     fn root(&self) -> Option<&Self::Node> {
         unsafe { self.root.as_ref() }
+    }
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn height(&self) -> u8 {
+        self.height()
+    }
+    fn insert(&mut self, index: usize, value: i32) {
+        self.insert(index, value);
+    }
+    fn remove(&mut self, index: usize) -> i32 {
+        self.remove(index)
     }
 }
 
@@ -349,65 +362,6 @@ mod test {
 
     #[test]
     fn analyze_tree_stats() {
-        let (mut tree, queries) =
-            test_utils::generate_benchmark_queries::<UnbalancedTreeWithParent>();
-
-        println!("Initial state:");
-        println!("  len={}, height={}", tree.len(), tree.height());
-        println!(
-            "  Theoretical optimal height: ~{:.1}",
-            (tree.len() as f64).log2()
-        );
-        println!();
-
-        let mut min_len = tree.len();
-        let mut max_len = tree.len();
-        let mut min_height = tree.height();
-        let mut max_height = tree.height();
-
-        for (i, &query) in queries.iter().enumerate() {
-            eprintln!("query = {query:?}");
-            match query {
-                Query::Insert { index, value } => tree.insert(index, value),
-                Query::Remove { index } => {
-                    tree.remove(index);
-                }
-            }
-
-            let len = tree.len();
-            let height = tree.height();
-            min_len = min_len.min(len);
-            max_len = max_len.max(len);
-            min_height = min_height.min(height);
-            max_height = max_height.max(height);
-
-            if (i + 1) % 20_000 == 0 {
-                let optimal_height = (len as f64).log2();
-                println!(
-                    "After {:6} queries: len={:6}, height={:2} (optimal: ~{:.1}, ratio: {:.2})",
-                    i + 1,
-                    len,
-                    height,
-                    optimal_height,
-                    height as f64 / optimal_height
-                );
-            }
-        }
-
-        println!();
-        println!("Final state:");
-        println!("  len={}, height={}", tree.len(), tree.height());
-        println!(
-            "  Theoretical optimal height: ~{:.1}",
-            (tree.len() as f64).log2()
-        );
-        println!();
-        println!("Statistics:");
-        println!("  Length range: {min_len} - {max_len}");
-        println!("  Height range: {min_height} - {max_height}");
-        println!(
-            "  Max height / optimal ratio: {:.2}",
-            max_height as f64 / (max_len as f64).log2()
-        );
+        test_utils::analyze_tree_stats::<UnbalancedTreeWithParent>();
     }
 }

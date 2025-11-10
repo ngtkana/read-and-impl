@@ -415,14 +415,12 @@ impl crate::test_utils::Validatable for Node {
     }
 }
 
-impl crate::test_utils::HasRoot for RbTreeWithParent {
+impl crate::test_utils::Tree for RbTreeWithParent {
     type Node = Node;
+
     fn root(&self) -> Option<&Self::Node> {
         unsafe { self.root.as_ref() }
     }
-}
-
-impl crate::test_utils::BenchmarkableTree for RbTreeWithParent {
     fn len(&self) -> usize {
         self.len()
     }

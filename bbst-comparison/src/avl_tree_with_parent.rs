@@ -370,14 +370,12 @@ impl crate::test_utils::Validatable for Node {
     }
 }
 
-impl crate::test_utils::HasRoot for AvlTreeWithParent {
+impl crate::test_utils::Tree for AvlTreeWithParent {
     type Node = Node;
+
     fn root(&self) -> Option<&Self::Node> {
         unsafe { self.root.as_ref() }
     }
-}
-
-impl crate::test_utils::BenchmarkableTree for AvlTreeWithParent {
     fn len(&self) -> usize {
         self.len()
     }

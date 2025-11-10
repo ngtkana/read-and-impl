@@ -48,20 +48,18 @@ pub trait TreeNode {
     fn value(&self) -> i32;
 }
 
-pub trait HasRoot {
-    type Node: TreeNode;
-    fn root(&self) -> Option<&Self::Node>;
-}
-
 #[allow(clippy::len_without_is_empty)]
-pub trait BenchmarkableTree: FromIterator<i32> {
+pub trait Tree: FromIterator<i32> {
+    type Node: TreeNode;
+
+    fn root(&self) -> Option<&Self::Node>;
     fn len(&self) -> usize;
     fn height(&self) -> u8;
     fn insert(&mut self, index: usize, value: i32);
     fn remove(&mut self, index: usize) -> i32;
 }
 
-pub fn analyze_tree_stats<T: BenchmarkableTree>() {
+pub fn analyze_tree_stats<T: Tree>() {
     pub const PHI: f64 = 1.618_033_988_749_895_f64;
 
     let (mut tree, queries) = generate_benchmark_queries::<T>();
@@ -126,7 +124,7 @@ pub fn analyze_tree_stats<T: BenchmarkableTree>() {
     );
 }
 
-pub fn collect<T: HasRoot>(tree: &T) -> Vec<i32> {
+pub fn collect<T: Tree>(tree: &T) -> Vec<i32> {
     fn collect_recurse<N: TreeNode>(node: Option<&N>, out: &mut Vec<i32>) {
         let Some(node) = node else { return };
         collect_recurse(node.left(), out);
@@ -146,7 +144,7 @@ pub trait Validatable: TreeNode {
     }
 }
 
-pub fn validate<T: HasRoot>(tree: &T)
+pub fn validate<T: Tree>(tree: &T)
 where
     T::Node: Validatable,
 {
