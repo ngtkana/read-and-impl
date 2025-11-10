@@ -40,6 +40,42 @@ impl AvlTreeWithParent {
     }
 }
 
+impl FromIterator<i32> for AvlTreeWithParent {
+    fn from_iter<T: IntoIterator<Item = i32>>(iter: T) -> Self {
+        fn from_iter_recurse(values: &[i32]) -> *mut Node {
+            unsafe {
+                let n = values.len();
+                if n == 0 {
+                    return null_mut();
+                }
+                let l = from_iter_recurse(&values[..n / 2]);
+                let c = Box::leak(Box::new(Node {
+                    parent: null_mut(),
+                    left: null_mut(),
+                    right: null_mut(),
+                    value: values[n / 2],
+                    ht: 0,
+                    len: 0,
+                }));
+                let r = from_iter_recurse(&values[n / 2 + 1..]);
+                c.left = l;
+                c.right = r;
+                if let Some(l) = l.as_mut() {
+                    l.parent = c;
+                }
+                if let Some(r) = r.as_mut() {
+                    r.parent = c;
+                }
+                c.update();
+                c
+            }
+        }
+        let values: Vec<_> = iter.into_iter().collect();
+        let root = from_iter_recurse(&values);
+        Self { root }
+    }
+}
+
 pub struct Node {
     parent: *mut Self,
     left: *mut Self,
@@ -338,6 +374,25 @@ mod test {
             let mut out = vec![];
             collect_recurse(tree.root.as_ref(), &mut out);
             out
+        }
+    }
+
+    #[test]
+    fn test_avl_tree_with_parent_from_iter() {
+        let mut rng = StdRng::seed_from_u64(42);
+        for tid in 1..=200 {
+            eprintln!("==== Case #{tid}");
+            let n = rng.random_range(0..=20);
+            let value_lim = 20;
+            let vec = std::iter::repeat_with(|| rng.random_range(0..value_lim))
+                .take(n)
+                .collect::<Vec<_>>();
+            let tree: AvlTreeWithParent = vec.iter().copied().collect();
+            eprintln!("vec = {vec:?}");
+            eprintln!("tree\n{}", pretty(tree.root));
+            validate(&tree);
+            eprintln!("tree validated!");
+            assert_eq!(collect(&tree), vec);
         }
     }
 
