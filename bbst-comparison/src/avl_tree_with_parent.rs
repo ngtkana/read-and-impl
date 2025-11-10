@@ -16,6 +16,15 @@ impl AvlTreeWithParent {
     pub fn new() -> Self {
         Self { root: null_mut() }
     }
+    pub fn len(&self) -> usize {
+        unsafe { self.root.as_ref().map_or(0, |r| r.len) }
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+    pub fn height(&self) -> u8 {
+        unsafe { self.root.as_ref().map_or(0, |r| r.ht) }
+    }
     pub fn insert(&mut self, index: usize, value: i32) {
         unsafe {
             let c = Box::leak(Box::new(Node {
@@ -441,5 +450,102 @@ mod test {
                 eprintln!();
             }
         }
+    }
+
+    fn generate_benchmark_queries() -> (AvlTreeWithParent, Vec<Query>) {
+        let mut rng = StdRng::seed_from_u64(42);
+        let n_initial = 200_000;
+        let len_max = 200_000;
+        let q = 200_000;
+        let value_lim = 1_000_000_000;
+
+        let initial_values: Vec<i32> = (0..n_initial)
+            .map(|_| rng.random_range(0..value_lim))
+            .collect();
+        let tree: AvlTreeWithParent = initial_values.into_iter().collect();
+
+        let mut n = n_initial;
+        let queries: Vec<Query> = std::iter::repeat_with(|| {
+            if rng.random_ratio(n as u32, len_max) {
+                let index = rng.random_range(0..n);
+                n -= 1;
+                Query::Remove { index }
+            } else {
+                let index = rng.random_range(0..=n);
+                let value = rng.random_range(0..value_lim);
+                n += 1;
+                Query::Insert { index, value }
+            }
+        })
+        .take(q)
+        .collect();
+
+        (tree, queries)
+    }
+
+    #[test]
+    fn analyze_tree_stats() {
+        pub const PHI: f64 = 1.618_033_988_749_895_f64;
+
+        let (mut tree, queries) = generate_benchmark_queries();
+
+        println!("Initial state:");
+        println!("  len={}, height={}", tree.len(), tree.height());
+        println!(
+            "  Theoretical optimal height: ~{:.1}",
+            (tree.len() as f64).log2()
+        );
+        println!();
+
+        let mut min_len = tree.len();
+        let mut max_len = tree.len();
+        let mut min_height = tree.height();
+        let mut max_height = tree.height();
+
+        for (i, &query) in queries.iter().enumerate() {
+            match query {
+                Query::Insert { index, value } => tree.insert(index, value),
+                Query::Remove { index } => {
+                    tree.remove(index);
+                }
+            }
+
+            let len = tree.len();
+            let height = tree.height();
+            min_len = min_len.min(len);
+            max_len = max_len.max(len);
+            min_height = min_height.min(height);
+            max_height = max_height.max(height);
+
+            if (i + 1) % 20_000 == 0 {
+                let optimal_height = (len as f64).log2();
+                let limit_height = (len as f64).ln() / PHI.ln();
+                println!(
+                    "After {:6} queries: len={:6}, height={:2} (optimal: ~{:.1}, limit: ~{:.1}, ratio: {:.2})",
+                    i + 1,
+                    len,
+                    height,
+                    optimal_height,
+                    limit_height,
+                    height as f64 / optimal_height
+                );
+            }
+        }
+
+        println!();
+        println!("Final state:");
+        println!("  len={}, height={}", tree.len(), tree.height());
+        println!(
+            "  Theoretical optimal height: ~{:.1}",
+            (tree.len() as f64).log2()
+        );
+        println!();
+        println!("Statistics:");
+        println!("  Length range: {min_len} - {max_len}");
+        println!("  Height range: {min_height} - {max_height}");
+        println!(
+            "  Max height / optimal ratio: {:.2}",
+            max_height as f64 / (max_len as f64).log2()
+        );
     }
 }

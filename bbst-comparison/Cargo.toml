@@ -9,3 +9,8 @@ procon-lg.workspace = true
 
 [dev-dependencies]
 rand.workspace = true
+criterion = "0.5"
+
+[[bench]]
+name = "avl_tree_bench"
+harness = false
