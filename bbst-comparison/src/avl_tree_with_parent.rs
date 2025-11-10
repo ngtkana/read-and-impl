@@ -357,31 +357,35 @@ fn validate(x: *const Node) {
     }
 }
 
+impl crate::test_utils::TreeNode for Node {
+    fn left(&self) -> Option<&Self> {
+        unsafe { self.left.as_ref() }
+    }
+    fn right(&self) -> Option<&Self> {
+        unsafe { self.right.as_ref() }
+    }
+    fn value(&self) -> i32 {
+        self.value
+    }
+}
+
+impl crate::test_utils::HasRoot for AvlTreeWithParent {
+    type Node = Node;
+    fn root(&self) -> Option<&Self::Node> {
+        unsafe { self.root.as_ref() }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::test_utils;
     use rand::{rngs::StdRng, Rng, SeedableRng};
 
     #[derive(Debug, Clone, Copy)]
     enum Query {
         Insert { index: usize, value: i32 },
         Remove { index: usize },
-    }
-
-    fn collect(tree: &AvlTreeWithParent) -> Vec<i32> {
-        fn collect_recurse(x: Option<&Node>, out: &mut Vec<i32>) {
-            unsafe {
-                let Some(x) = x.as_ref() else { return };
-                collect_recurse(x.left.as_ref(), out);
-                out.push(x.value);
-                collect_recurse(x.right.as_ref(), out);
-            }
-        }
-        unsafe {
-            let mut out = vec![];
-            collect_recurse(tree.root.as_ref(), &mut out);
-            out
-        }
     }
 
     #[test]
@@ -399,7 +403,7 @@ mod test {
             eprintln!("tree\n{}", pretty(tree.root));
             validate(tree.root);
             eprintln!("tree validated!");
-            assert_eq!(collect(&tree), vec);
+            assert_eq!(test_utils::collect(&tree), vec);
         }
     }
 
@@ -444,7 +448,7 @@ mod test {
                 eprintln!("tree\n{}", pretty(tree.root));
                 validate(tree.root);
                 eprintln!("tree validated!");
-                assert_eq!(collect(&tree), vec);
+                assert_eq!(test_utils::collect(&tree), vec);
                 eprintln!();
             }
         }

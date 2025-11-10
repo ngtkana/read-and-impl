@@ -264,27 +264,35 @@ fn pretty(x: Option<&Node>) -> String {
     }
 }
 
+impl crate::test_utils::TreeNode for Node {
+    fn left(&self) -> Option<&Self> {
+        self.left.as_deref()
+    }
+    fn right(&self) -> Option<&Self> {
+        self.right.as_deref()
+    }
+    fn value(&self) -> i32 {
+        self.value
+    }
+}
+
+impl crate::test_utils::HasRoot for AvlTreeByBox {
+    type Node = Node;
+    fn root(&self) -> Option<&Self::Node> {
+        self.root.as_deref()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::test_utils;
     use rand::{rngs::StdRng, Rng, SeedableRng};
 
     #[derive(Debug, Clone, Copy)]
     enum Query {
         Insert { index: usize, value: i32 },
         Remove { index: usize },
-    }
-
-    fn collect(tree: &AvlTreeByBox) -> Vec<i32> {
-        fn collect_recurse(x: Option<&Node>, out: &mut Vec<i32>) {
-            let Some(x) = x.as_ref() else { return };
-            collect_recurse(x.left.as_deref(), out);
-            out.push(x.value);
-            collect_recurse(x.right.as_deref(), out);
-        }
-        let mut out = vec![];
-        collect_recurse(tree.root.as_deref(), &mut out);
-        out
     }
 
     #[test]
@@ -302,7 +310,7 @@ mod test {
             eprintln!("tree:\n{}", pretty(tree.root.as_deref()));
             validate(tree.root.as_deref());
             eprintln!("tree validated!");
-            assert_eq!(collect(&tree), vec);
+            assert_eq!(test_utils::collect(&tree), vec);
         }
     }
 
@@ -347,7 +355,7 @@ mod test {
                 eprintln!("tree:\n{}", pretty(tree.root.as_deref()));
                 validate(tree.root.as_deref());
                 eprintln!("tree validated!");
-                assert_eq!(collect(&tree), vec);
+                assert_eq!(test_utils::collect(&tree), vec);
                 eprintln!();
             }
         }
