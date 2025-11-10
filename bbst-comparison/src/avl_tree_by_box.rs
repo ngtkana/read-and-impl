@@ -20,9 +20,6 @@ impl AvlTreeByBox {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    pub fn height(&self) -> u8 {
-        self.root.as_ref().map_or(0, |r| r.ht)
-    }
     pub fn insert(&mut self, index: usize, value: i32) {
         let c = Box::new(Node {
             left: None,
@@ -274,9 +271,6 @@ impl crate::test_utils::Tree for AvlTreeByBox {
     }
     fn len(&self) -> usize {
         self.len()
-    }
-    fn height(&self) -> u8 {
-        self.height()
     }
     fn insert(&mut self, index: usize, value: i32) {
         self.insert(index, value);
