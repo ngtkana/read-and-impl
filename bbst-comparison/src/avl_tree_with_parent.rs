@@ -344,30 +344,6 @@ fn pretty(x: *mut Node) -> String {
     }
 }
 
-#[allow(dead_code)]
-fn validate(x: *const Node) {
-    fn validate_recurse(x: &Node) {
-        unsafe {
-            matches!(ht(x.left) as i8 - ht(x.right) as i8, -1..=1);
-            assert_eq!(x.ht, ht(x.left).max(ht(x.right)) + 1);
-            if let Some(l) = x.left.as_ref() {
-                assert!(ptr::eq(l.parent, x));
-                validate_recurse(l);
-            }
-            if let Some(r) = x.right.as_ref() {
-                assert!(ptr::eq(r.parent, x));
-                validate_recurse(r);
-            }
-        }
-    }
-    unsafe {
-        if let Some(x) = x.as_ref() {
-            assert!(x.parent.is_null());
-            validate_recurse(x);
-        }
-    }
-}
-
 impl crate::test_utils::TreeNode for Node {
     fn left(&self) -> Option<&Self> {
         unsafe { self.left.as_ref() }

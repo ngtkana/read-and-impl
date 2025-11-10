@@ -193,26 +193,6 @@ fn rotate_right(mut x: Box<Node>) -> Box<Node> {
 }
 
 #[allow(dead_code)]
-fn validate(x: Option<&Node>) {
-    fn validate_recurse(x: &Node) {
-        matches!(
-            ht(x.left.as_deref()) as i8 - ht(x.right.as_deref()) as i8,
-            -1..=1
-        );
-        assert_eq!(x.ht, ht(x.left.as_deref()).max(ht(x.right.as_deref())) + 1);
-        if let Some(l) = x.left.as_ref() {
-            validate_recurse(l);
-        }
-        if let Some(r) = x.right.as_ref() {
-            validate_recurse(r);
-        }
-    }
-    if let Some(x) = x {
-        validate_recurse(x);
-    }
-}
-
-#[allow(dead_code)]
 fn pretty(x: Option<&Node>) -> String {
     fn pretty_recurse(x: &Node, s: &mut String, overlines: &mut Vec<bool>, dir: u8) {
         use std::fmt::Write;
