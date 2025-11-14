@@ -310,6 +310,9 @@ impl crate::test_utils::TreeNode for Node {
 impl crate::test_utils::Validatable for Node {
     const HAS_PARENT_POINTER: bool = true;
 
+    fn validate_root(&self) -> bool {
+        true
+    }
     fn validate_balance(&self) -> bool {
         true
     }

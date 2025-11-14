@@ -107,6 +107,7 @@ pub fn collect<T: Tree>(tree: &T) -> Vec<i32> {
 
 pub trait Validatable: TreeNode {
     const HAS_PARENT_POINTER: bool;
+    fn validate_root(&self) -> bool;
     fn validate_balance(&self) -> bool;
     fn parent(&self) -> Option<&Self> {
         None
@@ -141,6 +142,7 @@ where
         if T::Node::HAS_PARENT_POINTER {
             assert!(root.parent().is_none());
         }
+        assert!(root.validate_root());
         validate_recurse(root, None);
     }
 }

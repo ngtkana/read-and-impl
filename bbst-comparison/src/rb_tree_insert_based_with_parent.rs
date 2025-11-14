@@ -1,19 +1,20 @@
+// [WIP]: impl `remove`
 use std::{
     cmp::Ordering,
     ptr::{self, null_mut},
 };
 use Color::{Black, Red};
 
-pub struct RbTreeWithParent {
+pub struct RbTreeInsertBasedWithParent {
     root: *mut Node,
 }
-impl Default for RbTreeWithParent {
+impl Default for RbTreeInsertBasedWithParent {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RbTreeWithParent {
+impl RbTreeInsertBasedWithParent {
     pub fn new() -> Self {
         Self { root: null_mut() }
     }
@@ -34,8 +35,7 @@ impl RbTreeWithParent {
                 bh: 1,
                 color: Red,
             }));
-            let (l, r) = split2(self.root, index);
-            self.root = merge3(l, c, r);
+            self.root = insert(self.root, index, c);
         }
     }
     pub fn remove(&mut self, index: usize) -> i32 {
@@ -47,7 +47,7 @@ impl RbTreeWithParent {
     }
 }
 
-impl FromIterator<i32> for RbTreeWithParent {
+impl FromIterator<i32> for RbTreeInsertBasedWithParent {
     fn from_iter<T: IntoIterator<Item = i32>>(iter: T) -> Self {
         fn from_iter_recurse(values: &[i32]) -> *mut Node {
             unsafe {
@@ -119,12 +119,75 @@ impl Node {
     }
 }
 
-unsafe fn split2(x: *mut Node, index: usize) -> (*mut Node, *mut Node) {
-    if index == x.as_ref().map_or(0, |x| x.len) {
-        return (x, null_mut());
+unsafe fn insert(x: *mut Node, mut index: usize, c: &mut Node) -> &mut Node {
+    c.parent = null_mut();
+    let Some(mut x) = x.as_mut() else {
+        c.color = Black;
+        c.update();
+        return c;
+    };
+    c.color = Red;
+    x.parent = null_mut();
+    loop {
+        let llen = x.left.as_ref().map_or(0, |x| x.len);
+        if index <= llen {
+            let Some(l) = x.left.as_mut() else {
+                assert_eq!(index, 0);
+                x.left = c;
+                break;
+            };
+            x = l;
+        } else {
+            index -= llen + 1;
+            let Some(r) = x.right.as_mut() else {
+                assert_eq!(index, 0);
+                x.right = c;
+                break;
+            };
+            x = r;
+        }
     }
-    let (l, c, r) = split3(&mut *x, index);
-    (l, merge2(c, r))
+    c.parent = x;
+    c.update();
+    fixup(c)
+}
+
+unsafe fn fixup(mut x: &mut Node) -> &mut Node {
+    while x.color == Red && color(x.parent) == Red {
+        let p = &mut *x.parent;
+        let pp = &mut *p.parent;
+        match (color(pp.left), color(pp.right)) {
+            (Red, Red) => {
+                (*pp.left).color = Black;
+                pp.color = Red;
+                (*pp.right).color = Black;
+                p.update();
+                pp.update();
+                x = pp;
+            }
+            (Red, Black) => {
+                if ptr::eq(p.right, x) {
+                    rotate_left(p);
+                }
+                x = rotate_right(pp);
+                break;
+            }
+            (Black, Red) => {
+                if ptr::eq(p.left, x) {
+                    rotate_right(p);
+                }
+                x = rotate_left(pp);
+                break;
+            }
+            (Black, Black) => unreachable!(),
+        }
+    }
+    while let Some(p) = x.parent.as_mut() {
+        p.update();
+        x = p;
+    }
+    x.color = Black;
+    x
 }
 
 unsafe fn split3(mut x: &mut Node, mut index: usize) -> (*mut Node, &mut Node, *mut Node) {
@@ -404,7 +467,6 @@ impl crate::test_utils::Validatable for Node {
     fn validate_root(&self) -> bool {
         self.color == Black
     }
-
     fn validate_balance(&self) -> bool {
         unsafe {
             let left_bh = bh(self.left) + u8::from(color(self.left) == Black);
@@ -422,7 +484,7 @@ impl crate::test_utils::Validatable for Node {
     }
 }
 
-impl crate::test_utils::Tree for RbTreeWithParent {
+impl crate::test_utils::Tree for RbTreeInsertBasedWithParent {
     type Node = Node;
 
     fn root(&self) -> Option<&Self::Node> {
@@ -455,7 +517,7 @@ mod test {
             let vec = std::iter::repeat_with(|| rng.random_range(0..value_lim))
                 .take(n)
                 .collect::<Vec<_>>();
-            let tree: RbTreeWithParent = vec.iter().copied().collect();
+            let tree: RbTreeInsertBasedWithParent = vec.iter().copied().collect();
             eprintln!("vec = {vec:?}");
             eprintln!("tree\n{}", pretty(tree.root));
             test_utils::validate(&tree);
@@ -486,7 +548,7 @@ mod test {
             })
             .take(q)
             .collect();
-            let mut tree = RbTreeWithParent::new();
+            let mut tree = RbTreeInsertBasedWithParent::new();
             let mut vec = vec![];
             for (qid, &query) in (1..).zip(&queries) {
                 eprintln!("==== Case #{tid}.{qid}: {query:?}");
@@ -513,6 +575,6 @@ mod test {
 
     #[test]
     fn analyze_tree_stats() {
-        test_utils::analyze_tree_stats::<RbTreeWithParent>();
+        test_utils::analyze_tree_stats::<RbTreeInsertBasedWithParent>();
     }
 }
