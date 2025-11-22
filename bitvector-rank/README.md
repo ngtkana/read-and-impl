@@ -42,4 +42,4 @@ pub struct Rank25664 {
 ```
 
 - 構築: 33 ms
-- $\mathrm{rank}$: 35ms
+- $\mathrm{rank}$: 35 ms
