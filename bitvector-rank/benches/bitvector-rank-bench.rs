@@ -1,4 +1,4 @@
-use bitvector_rank::{Rank1, Rank25664};
+use bitvector_rank::{Rank1, Rank64, Rank25664};
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use rand::{Rng, SeedableRng, rngs::StdRng};
 
@@ -12,6 +12,13 @@ fn bench_bitvector_construct(c: &mut Criterion) {
         b.iter(|| {
             let rank1: Rank1 = a.iter().copied().collect();
             black_box(rank1)
+        });
+    });
+
+    group.bench_function("Rank64", |b| {
+        b.iter(|| {
+            let rank64: Rank64 = a.iter().copied().collect();
+            black_box(rank64)
         });
     });
 
@@ -37,6 +44,20 @@ fn bench_bitvector_rank(c: &mut Criterion) {
                 match query {
                     Query::Rank { index } => {
                         let result = rank1.rank(index);
+                        black_box(result);
+                    }
+                }
+            }
+        });
+    });
+
+    let rank64: Rank64 = a.iter().copied().collect();
+    group.bench_function("Rank64", |b| {
+        b.iter(|| {
+            for &query in &queries {
+                match query {
+                    Query::Rank { index } => {
+                        let result = rank64.rank(index);
                         black_box(result);
                     }
                 }

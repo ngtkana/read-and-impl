@@ -44,6 +44,7 @@ name = "bitvector-rank"
 version = "0.1.0"
 dependencies = [
  "criterion",
+ "lg",
  "rand",
 ]
 
@@ -193,7 +194,7 @@ checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 [[package]]
 name = "fp"
 version = "0.1.0"
-source = "git+https://github.com/ngtkana/ac-adapter-rs.git#9d31df8d5125ac6e7f2924192fc2252b1be6b63b"
+source = "git+https://github.com/ngtkana/ac-adapter-rs.git#514b8ec6c483e295940045b4cf7a5f985f3d4105"
 
 [[package]]
 name = "getrandom"
@@ -266,6 +267,11 @@ version = "0.1.0"
 dependencies = [
  "rand",
 ]
+
+[[package]]
+name = "lg"
+version = "0.1.0"
+source = "git+https://github.com/ngtkana/ac-adapter-rs.git#514b8ec6c483e295940045b4cf7a5f985f3d4105"
 
 [[package]]
 name = "libc"
