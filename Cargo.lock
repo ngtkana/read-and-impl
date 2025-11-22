@@ -40,6 +40,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitvector-rank"
+version = "0.1.0"
+dependencies = [
+ "rand",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
