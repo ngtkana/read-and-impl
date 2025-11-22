@@ -19,16 +19,16 @@ impl FromIterator<bool> for Rank25664 {
         let mut len = 0;
         let mut word = 0u64;
         let mut words = vec![];
-        let mut block = vec![];
-        let mut sblock = vec![];
+        let mut block = vec![0];
+        let mut sblock = vec![0];
         let mut sum = 0u8;
         let mut ssum = 0u64;
         for b in iter {
+            word |= u64::from(b) << (len % 64);
+            len += 1;
             if len % 64 == 0 {
                 let pc = word.count_ones();
-                if len != 0 {
-                    words.push(std::mem::take(&mut word));
-                }
+                words.push(std::mem::take(&mut word));
                 sum += pc as u8;
                 ssum += u64::from(pc);
                 if len % 256 == 0 {
@@ -37,12 +37,8 @@ impl FromIterator<bool> for Rank25664 {
                 }
                 block.push(sum);
             }
-            word |= u64::from(b) << (len % 64);
-            len += 1;
         }
-        if len % 64 != 0 {
-            words.push(word);
-        }
+        words.push(word);
         Self {
             len,
             words,
@@ -60,8 +56,11 @@ mod tests {
     #[test]
     fn test_rank25664() {
         let mut rng = StdRng::seed_from_u64(42);
-        for tid in 1..=20 {
-            let n = rng.random_range(0..=10000);
+        for tid in 1..=100 {
+            let mut n = rng.random_range(0..=1000);
+            if rng.random_ratio(1, 2) {
+                n = n / 64 * 64;
+            }
             eprintln!("Testcase #{tid}: n = {n}");
             let a: Vec<_> = std::iter::repeat_with(|| rng.random_ratio(1, 2))
                 .take(n)
