@@ -1,0 +1,33 @@
+# Bitvector Rank
+
+ビットベクトルの $\mathrm{rank}$ の速度比較。$w = 64$ とする。
+
+## Rank1 ($65n$ bit)
+
+すべての場所の累積和をメモする。$(1 + w)n$ bit。
+
+
+## Rank64 ($2n$ bit)
+
+$64$ ビットごとに累積和をメモする。ブロック内の $\mathrm{rank}$ は $\mathrm{count\_ones}$ を用いる。
+
+```rust
+pub struct Rank64 {
+    len: usize,
+    words: Vec<u64>,
+    block: Vec<u64>,
+}
+```
+
+## Rank25664 ($1.375n$ bit)
+
+$256$ ビットごとに累積和をメモする。`block` が $n / 8$ bit、`sblock` が $n / 4$ bit。
+
+```rust
+pub struct Rank25664 {
+    len: usize,
+    words: Vec<u64>,
+    block: Vec<u8>,
+    sblock: Vec<u64>,
+}
+```
