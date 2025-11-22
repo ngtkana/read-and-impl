@@ -1,9 +1,8 @@
 use bitvector_rank::{Rank1, Rank64, Rank25664};
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use rand::{Rng, SeedableRng, rngs::StdRng};
-
 fn bench_bitvector_construct(c: &mut Criterion) {
-    let mut group = c.benchmark_group("Bitvector construct (n = 10⁸)");
+    let mut group = c.benchmark_group("Bitvector Construct");
 
     let mut rng = StdRng::seed_from_u64(42);
     let TestCase { a, queries: _ } = TestCase::generate(&mut rng);
@@ -33,7 +32,7 @@ fn bench_bitvector_construct(c: &mut Criterion) {
 }
 
 fn bench_bitvector_rank(c: &mut Criterion) {
-    let mut group = c.benchmark_group("Bitvector rank (N = 10⁸, Q = 10⁶)");
+    let mut group = c.benchmark_group("Bitvector Rank");
     let mut rng = StdRng::seed_from_u64(42);
     let TestCase { a, queries } = TestCase::generate(&mut rng);
 
@@ -97,7 +96,7 @@ impl TestCase {
         let a: Vec<_> = std::iter::repeat_with(|| rng.random_ratio(1, 2))
             .take(n)
             .collect();
-        let q = 1_000_000;
+        let q = 10_000_000;
         let queries = std::iter::repeat_with(|| {
             let index = rng.random_range(0..=n);
             Query::Rank { index }
