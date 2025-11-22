@@ -43,6 +43,7 @@ dependencies = [
 name = "bitvector-rank"
 version = "0.1.0"
 dependencies = [
+ "criterion",
  "rand",
 ]
 

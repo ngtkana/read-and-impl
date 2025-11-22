@@ -5,3 +5,8 @@ edition = "2024"
 
 [dev-dependencies]
 rand.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "bitvector-rank-bench"
+harness = false
