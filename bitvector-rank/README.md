@@ -8,7 +8,7 @@
 
 すべての場所の累積和をメモする。 $(1 + w)n$ bit。
 
-- $\mathtt{construct}$: 82 ms
+- $\mathtt{construct}$: 90 ms
 - $\mathtt{rank}$: 45 ms
 
 
@@ -24,8 +24,8 @@ pub struct Rank64 {
 }
 ```
 
-- $\mathtt{construct}$: 34 ms
-- $\mathtt{rank}$: 40 ms
+- $\mathtt{construct}$: 33 ms
+- $\mathtt{rank}$: 44 ms
 
 
 ## Rank25664 ($1.375n$ bit)
@@ -44,8 +44,27 @@ pub struct Rank25664 {
 }
 ```
 
-- $\mathtt{construct}$: 35 ms
-- $\mathtt{rank}$: 35 ms
+- $\mathtt{construct}$: 34 ms
+- $\mathtt{rank}$: 36 ms
+
+
+
+## Rank25664Interlaced ($1.5n$ bit)
+
+$256$ bit (= $4$ word) ごとに、$2$ word のメモを先頭に挟む。
+
+- $\mathtt{words}[6 * a]$: グローバル累積和
+- $\mathtt{words}[6 * a + 1]$: $64$ bit ごとの $256$-block 内累積和 $8$ つを、$8$ bit 整数で表して pack したもの
+- $\mathtt{words}[6 * a + 2..]$: 生ビットベクトル
+
+```rust
+pub struct Rank25664 {
+    len: usize,
+    words: Vec<u64>,
+}
+```
+- $\mathtt{construct}$: 34 ms
+- $\mathtt{rank}$: 32 ms
 
 
 ## Rank51264Interlaced ($1.25n$ bit)
@@ -63,4 +82,4 @@ pub struct Rank25664 {
 }
 ```
 - $\mathtt{construct}$: 33 ms
-- $\mathtt{rank}$: 30 ms
+- $\mathtt{rank}$: 31 ms

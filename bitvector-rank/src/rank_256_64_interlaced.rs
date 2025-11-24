@@ -1,27 +1,22 @@
-pub struct Rank51264Interlaced {
+pub struct Rank25664Interlaced {
     len: usize,
     words: Vec<u64>,
 }
-impl Rank51264Interlaced {
+impl Rank25664Interlaced {
     pub fn rank(&self, index: usize) -> usize {
         assert!(index <= self.len);
-        let a = index / 512;
-        let b = index % 512 / 64;
+        let a = index / 256;
+        let b = index % 256 / 64;
         let c = index % 64;
-        let sum = self.words[a * 10];
-        let packed = self.words[a * 10 + 1];
-        let word = self.words[a * 10 + 2 + b];
-        let ans =
-            sum + if b == 0 {
-                0
-            } else {
-                packed >> ((b - 1) * 9) & 511
-            } + u64::from((word & ((1 << c) - 1)).count_ones());
+        let sum = self.words[a * 6];
+        let packed = self.words[a * 6 + 1];
+        let word = self.words[a * 6 + 2 + b];
+        let ans = sum + (packed >> (b * 8) & 255) + u64::from((word & ((1 << c) - 1)).count_ones());
         ans as usize
     }
 }
 
-impl FromIterator<bool> for Rank51264Interlaced {
+impl FromIterator<bool> for Rank25664Interlaced {
     fn from_iter<T: IntoIterator<Item = bool>>(iter: T) -> Self {
         let mut len = 0usize;
         let mut word = 0u64;
@@ -32,14 +27,14 @@ impl FromIterator<bool> for Rank51264Interlaced {
             if (len + 1).is_multiple_of(64) {
                 lsum += word.count_ones();
                 words.push(std::mem::take(&mut word));
-                let a = len / 512;
-                let b = len % 512 / 64;
-                if (len + 1).is_multiple_of(512) {
-                    words.push(words[a * 10] + u64::from(lsum));
+                let a = len / 256;
+                let b = len % 256 / 64;
+                if (len + 1).is_multiple_of(256) {
+                    words.push(words[a * 6] + u64::from(lsum));
                     words.push(0);
                     lsum = 0;
                 } else {
-                    words[a * 10 + 1] |= u64::from(lsum) << (b * 9);
+                    words[a * 6 + 1] |= u64::from(lsum) << ((b + 1) * 8);
                 }
             }
             len += 1;
@@ -66,7 +61,7 @@ mod tests {
             let a: Vec<_> = std::iter::repeat_with(|| rng.random_ratio(1, 2))
                 .take(n)
                 .collect();
-            let bvec: Rank51264Interlaced = a.iter().copied().collect();
+            let bvec: Rank25664Interlaced = a.iter().copied().collect();
             for qid in 1..=200 {
                 let index = rng.random_range(0..=n);
                 eprintln!("Query #{tid}.{qid}: rank({index})");

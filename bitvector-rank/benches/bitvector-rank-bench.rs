@@ -1,4 +1,4 @@
-use bitvector_rank::{Rank1, Rank64, Rank25664, Rank51264Interlaced};
+use bitvector_rank::{Rank1, Rank64, Rank25664, Rank25664Interlaced, Rank51264Interlaced};
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use rand::{Rng, SeedableRng, rngs::StdRng};
 fn bench_bitvector_construct(c: &mut Criterion) {
@@ -25,6 +25,13 @@ fn bench_bitvector_construct(c: &mut Criterion) {
         b.iter(|| {
             let rank25664: Rank25664 = a.iter().copied().collect();
             black_box(rank25664)
+        });
+    });
+
+    group.bench_function("Rank25664Interlaced", |b| {
+        b.iter(|| {
+            let rank25664interlaced: Rank25664Interlaced = a.iter().copied().collect();
+            black_box(rank25664interlaced)
         });
     });
 
@@ -78,6 +85,20 @@ fn bench_bitvector_rank(c: &mut Criterion) {
                 match query {
                     Query::Rank { index } => {
                         let result = rank25664.rank(index);
+                        black_box(result);
+                    }
+                }
+            }
+        });
+    });
+
+    let rank25664interlaced: Rank25664Interlaced = a.iter().copied().collect();
+    group.bench_function("Rank25664Interlaced", |b| {
+        b.iter(|| {
+            for &query in &queries {
+                match query {
+                    Query::Rank { index } => {
+                        let result = rank25664interlaced.rank(index);
                         black_box(result);
                     }
                 }
