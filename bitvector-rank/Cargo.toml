@@ -3,6 +3,12 @@ name = "bitvector-rank"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+bench = []
+
+[dependencies]
+rand.workspace = true
+
 [dev-dependencies]
 lg.workspace = true
 rand.workspace = true
