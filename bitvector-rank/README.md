@@ -72,7 +72,7 @@ pub struct Rank25664 {
 $512$ bit (= $8$ word) ごとに、 $2$ word のメモを先頭に挟む。 $9$-bit 整数を無理矢理 pack しているので、byte 境界に沿わない read が生じることに注意。
 
 - $\mathtt{words}[10 * a]$: グローバル累積和
-- $\mathtt{words}[10 * a + 1]$: $64$ bit ごとの $512$-block 内累積和のうち先頭以外のもの $7$ つを、$9$ bit 整数で表して pack したもの
+- $\mathtt{words}[10 * a + 1]$: $64$ bit ごとの $512$-block 内累積和のうち先頭以外のもの $7$ つを、 $9$ bit 整数で表して pack したもの
 - $\mathtt{words}[10 * a + 2..]$: 生ビットベクトル
 
 ```rust
